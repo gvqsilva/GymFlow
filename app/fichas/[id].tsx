@@ -1,10 +1,9 @@
-// app/fichas/[id].tsx
-
 import React from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, Alert } from 'react-native';
 import { useLocalSearchParams, Link, Stack } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { WORKOUT_DATA } from '../../constants/workoutData';
+import * as Haptics from 'expo-haptics'; // Importa o módulo de vibração
 
 const themeColor = '#5a4fcf';
 
@@ -48,6 +47,8 @@ export default function WorkoutDetailScreen() {
                     history.push(workoutEntry);
                 }
                 await AsyncStorage.setItem('workoutHistory', JSON.stringify(history));
+
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); // VIBRAÇÃO DE SUCESSO
 
                 const messageAction = isUpdate ? "atualizado para" : "contabilizado como";
                 Alert.alert("Sucesso!", `Treino de hoje ${messageAction} ${id}.`);
@@ -112,7 +113,7 @@ export default function WorkoutDetailScreen() {
                 onPress={handleLogWorkout}
                 onLongPress={handleClearHistory}
             >
-                <Text style={styles.logButtonText}>Contabilizar Treino </Text>
+                <Text style={styles.logButtonText}>Contabilizar Treino</Text>
             </Pressable>
             <FlatList
                 data={workout.exercises}
@@ -122,8 +123,8 @@ export default function WorkoutDetailScreen() {
                     <Link href={{ pathname: '/fichas/exercicio', params: { workoutId: id, exerciseId: item.id } }} asChild>
                         <Pressable style={styles.card}>
                             <View style={{flex: 1}}>
-                                <Text style={styles.exerciseName}>{item.name} </Text>
-                                <Text style={styles.muscleTag}>{item.muscle} </Text>
+                                <Text style={styles.exerciseName}>{item.name}</Text>
+                                <Text style={styles.muscleTag}>{item.muscle}</Text>
                                 {item.obs ? <Text style={styles.obsText}>Obs: {item.obs} </Text> : null}
                             </View>
                             <View style={styles.seriesReps}>
@@ -151,4 +152,3 @@ const styles = StyleSheet.create({
     seriesReps: { alignItems: 'flex-end', marginLeft: 10 },
     seriesRepsText: { fontSize: 14, color: '#333' },
 });
-

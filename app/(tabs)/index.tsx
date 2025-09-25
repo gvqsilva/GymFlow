@@ -1,16 +1,19 @@
 // app/(tabs)/index.tsx
 
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, Pressable, StatusBar, ScrollView } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useIsFocused } from '@react-navigation/native';
 import { Link } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
-import { Pressable, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, View } from 'react-native';
+import * as Haptics from 'expo-haptics'; // Importa o módulo de vibração
 
 const themeColor = '#5a4fcf';
 
-const getTodayDateString = () => {
-    const today = new Date();
-    return today.toISOString().split('T')[0];
+const getLocalDateString = (date = new Date()) => {
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
 };
 
 const WorkoutGraph = ({ data }: { data: { [key: string]: number } }) => {
@@ -53,7 +56,7 @@ export default function HomeScreen() {
 
     const loadData = useCallback(async () => {
         try {
-            const today = getTodayDateString();
+            const today = getLocalDateString();
             const creatineDate = await AsyncStorage.getItem('creatineDate');
             setCreatineTaken(creatineDate === today);
 
@@ -97,11 +100,12 @@ export default function HomeScreen() {
     }, [isFocused, loadData]);
 
     const handleCreatinePress = async () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); // VIBRAÇÃO AQUI
         const newStatus = !creatineTaken;
         setCreatineTaken(newStatus);
         try {
             if (newStatus) {
-                await AsyncStorage.setItem('creatineDate', getTodayDateString());
+                await AsyncStorage.setItem('creatineDate', getLocalDateString());
             } else {
                 await AsyncStorage.removeItem('creatineDate');
             }
@@ -109,19 +113,21 @@ export default function HomeScreen() {
     };
 
     const handleWheyIncrement = async () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); // VIBRAÇÃO AQUI
         const newCount = wheyCount + 1;
         setWheyCount(newCount);
         try {
-            await AsyncStorage.setItem('wheyData', JSON.stringify({ count: newCount, date: getTodayDateString() }));
+            await AsyncStorage.setItem('wheyData', JSON.stringify({ count: newCount, date: getLocalDateString() }));
         } catch (e) { console.error("Failed to save whey count.", e); }
     };
 
     const handleWheyDecrement = async () => {
         if (wheyCount <= 0) return;
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); // VIBRAÇÃO AQUI
         const newCount = wheyCount - 1;
         setWheyCount(newCount);
         try {
-            await AsyncStorage.setItem('wheyData', JSON.stringify({ count: newCount, date: getTodayDateString() }));
+            await AsyncStorage.setItem('wheyData', JSON.stringify({ count: newCount, date: getLocalDateString() }));
         } catch (e) { console.error("Failed to save whey count.", e); }
     };
 
@@ -134,7 +140,7 @@ export default function HomeScreen() {
                         <Text style={styles.greetingSmall}>Olá,</Text>
                         <Text style={styles.greetingLarge}>{userName}</Text>
                     </View>
-                    <Text style={styles.workoutCount}>Treinos no mês: {monthlyWorkouts} </Text>
+                    <Text style={styles.workoutCount}>{`Treinos no mês: ${monthlyWorkouts} `}</Text>
                 </View>
 
                 <View style={styles.content}>
@@ -191,7 +197,7 @@ const styles = StyleSheet.create({
     header: { backgroundColor: themeColor, paddingHorizontal: 25, paddingTop: 80, paddingBottom: 40, borderBottomLeftRadius: 30, borderBottomRightRadius: 30, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
     greetingSmall: { fontSize: 22, color: 'white', opacity: 0.8 },
     greetingLarge: { fontSize: 36, fontWeight: 'bold', color: 'white' },
-    workoutCount: { fontSize: 16, color: 'white', fontWeight: '500' },
+    workoutCount: { fontSize: 16, color: 'white', fontWeight: '500', textAlign: 'right' },
     content: { padding: 20 },
     card: { backgroundColor: 'white', borderRadius: 20, paddingHorizontal: 25, marginBottom: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3, height: 95 },
     cardTitle: { fontSize: 22, fontWeight: 'bold', color: '#333' },
