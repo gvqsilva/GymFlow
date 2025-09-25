@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "brainiac",
+    "name": "GymFlow",
     "slug": "brainiac",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -19,7 +19,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "brainiac.workout_"
     },
     "web": {
       "output": "static",
@@ -43,6 +44,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "ae564e5e-933c-4df7-ae5d-6d450cfc630a"
+      }
     }
   }
 }
