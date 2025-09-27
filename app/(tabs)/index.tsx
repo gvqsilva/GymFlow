@@ -5,7 +5,8 @@ import { View, Text, StyleSheet, SafeAreaView, Pressable, StatusBar, ScrollView 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useIsFocused } from '@react-navigation/native';
 import { Link } from 'expo-router';
-import * as Haptics from 'expo-haptics'; // Importa o módulo de vibração
+import * as Haptics from 'expo-haptics';
+import { scheduleNextReminder } from '../../lib/notificationService'; // Importa a nossa nova função
 
 const themeColor = '#5a4fcf';
 
@@ -93,14 +94,16 @@ export default function HomeScreen() {
         }
     }, []);
 
+    // Atualiza o agendamento de notificações sempre que a tela fica em foco
     useEffect(() => {
         if (isFocused) {
             loadData();
+            scheduleNextReminder();
         }
     }, [isFocused, loadData]);
 
     const handleCreatinePress = async () => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); // VIBRAÇÃO AQUI
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         const newStatus = !creatineTaken;
         setCreatineTaken(newStatus);
         try {
@@ -109,11 +112,13 @@ export default function HomeScreen() {
             } else {
                 await AsyncStorage.removeItem('creatineDate');
             }
+            // Após alterar o estado da creatina, reagenda a notificação
+            await scheduleNextReminder();
         } catch (e) { console.error("Failed to save creatine status.", e); }
     };
 
     const handleWheyIncrement = async () => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); // VIBRAÇÃO AQUI
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         const newCount = wheyCount + 1;
         setWheyCount(newCount);
         try {
@@ -123,7 +128,7 @@ export default function HomeScreen() {
 
     const handleWheyDecrement = async () => {
         if (wheyCount <= 0) return;
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); // VIBRAÇÃO AQUI
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         const newCount = wheyCount - 1;
         setWheyCount(newCount);
         try {
@@ -140,7 +145,7 @@ export default function HomeScreen() {
                         <Text style={styles.greetingSmall}>Olá,</Text>
                         <Text style={styles.greetingLarge}>{userName}</Text>
                     </View>
-                    <Text style={styles.workoutCount}>{`Treinos no mês: ${monthlyWorkouts} `}</Text>
+                    <Text style={styles.workoutCount}>{`Total de treinos\nno mês: ${monthlyWorkouts}`}</Text>
                 </View>
 
                 <View style={styles.content}>
@@ -157,7 +162,7 @@ export default function HomeScreen() {
                     <View style={styles.card}>
                         <View>
                             <Text style={styles.cardTitle}>Whey</Text>
-                            <Text style={styles.cardDose}>Dose: 30g </Text>
+                            <Text style={styles.cardDose}>Dose: 30g</Text>
                         </View>
                         <View style={styles.wheyCounter}>
                             <Pressable onPress={handleWheyDecrement} style={styles.wheyButton}>
@@ -218,6 +223,6 @@ const styles = StyleSheet.create({
     labelArea: { flexDirection: 'row', justifyContent: 'space-around', paddingTop: 5 },
     labelWrapper: { flex: 1, alignItems: 'center' },
     barLabel: { fontSize: 14, fontWeight: 'bold', color: '#333' },
-    barTypeLabel: { fontSize: 14, color: 'gray' }
+    barTypeLabel: { fontSize: 14, color: 'gray' },
 });
 
