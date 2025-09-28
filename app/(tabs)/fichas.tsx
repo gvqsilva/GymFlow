@@ -1,3 +1,5 @@
+// app/(tabs)/fichas.tsx
+
 import React from 'react';
 import { View, StyleSheet, FlatList, Pressable, Text } from 'react-native';
 import { Link, Stack } from 'expo-router';

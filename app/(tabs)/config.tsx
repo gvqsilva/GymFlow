@@ -1,4 +1,4 @@
-// app/(tabs)/configuracoes.tsx
+// app/(tabs)/config.tsx
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, Pressable, Switch, Alert, ScrollView } from 'react-native';

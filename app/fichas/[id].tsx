@@ -1,3 +1,5 @@
+// app/fichas/[id].tsx
+
 import React from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, Alert } from 'react-native';
 import { useLocalSearchParams, Link, Stack } from 'expo-router';
