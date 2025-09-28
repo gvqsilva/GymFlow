@@ -1,18 +1,12 @@
 {
-  "cli": {
-    "version": ">= 16.19.3",
-    "appVersionSource": "remote"
-  },
   "build": {
     "development": {
       "developmentClient": true,
       "distribution": "internal",
-      "android": {
-        "applicationId": "brainiac.workout_.dev"
-      },
       "env": {
         "APP_NAME": "BETA-GymFlow",
-        "APP_ICON": "./assets/images/icon-dev.png"
+        "APP_ICON": "./assets/images/icon-dev.png",
+        "APP_PACKAGE": "brainiac.workout_.dev"
       }
     },
     "preview": {
@@ -25,11 +19,15 @@
       },
       "env": {
         "APP_NAME": "GymFlow",
-        "APP_ICON": "./assets/images/icon-gym.png"
+        "APP_ICON": "./assets/images/icon-gym.png",
+        "APP_PACKAGE": "brainiac.workout_"
       }
     }
   },
   "submit": {
     "production": {}
+  },
+  "cli": {
+    "appVersionSource": "remote"
   }
 }

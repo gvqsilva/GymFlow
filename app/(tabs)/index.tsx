@@ -145,7 +145,7 @@ export default function HomeScreen() {
                         <Text style={styles.greetingSmall}>Olá,</Text>
                         <Text style={styles.greetingLarge}>{userName}</Text>
                     </View>
-                    <Text style={styles.workoutCount}>{`Total de treinos\nno mês: ${monthlyWorkouts}`}</Text>
+                    <Text style={styles.workoutCount}>{`Treinos no mês: ${monthlyWorkouts}` } </Text>
                 </View>
 
                 <View style={styles.content}>
@@ -162,7 +162,7 @@ export default function HomeScreen() {
                     <View style={styles.card}>
                         <View>
                             <Text style={styles.cardTitle}>Whey</Text>
-                            <Text style={styles.cardDose}>Dose: 30g</Text>
+                            <Text style={styles.cardDose}>Dose: 30g </Text>
                         </View>
                         <View style={styles.wheyCounter}>
                             <Pressable onPress={handleWheyDecrement} style={styles.wheyButton}>
