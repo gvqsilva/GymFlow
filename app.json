@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "GymFlow",
+    "name": "${APP_NAME}",
     "slug": "brainiac",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "${APP_ICON}",
     "scheme": "brainiac",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
