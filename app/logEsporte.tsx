@@ -20,7 +20,7 @@ export default function LogSportScreen() {
     const router = useRouter();
 
     const [duration, setDuration] = useState('');
-    const [intensity, setIntensity] = useState<'Leve' | 'Moderada' | 'Alta' | null>(null);
+    const [intensity, setIntensity] = useState<'Leve' | 'Média'  | 'Alta' | null>(null);
     const [notes, setNotes] = useState('');
 
     const handleSaveActivity = async () => {
@@ -70,7 +70,7 @@ export default function LogSportScreen() {
 
                 <Text style={styles.label}>Intensidade</Text>
                 <View style={styles.intensityContainer}>
-                    {['Leve', 'Moderada', 'Alta'].map((level) => (
+                    {['Leve', 'Média ', 'Alta '].map((level) => (
                         <Pressable 
                             key={level}
                             style={[

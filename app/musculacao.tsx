@@ -100,7 +100,7 @@ export default function MusculacaoScreen() {
 
     return (
         <View style={styles.container}>
-            <Stack.Screen options={{ title: 'Fichas de Musculação' }} />
+            <Stack.Screen options={{ title: 'Fichas de Treino' }} />
             <FlatList
                 data={workoutsList}
                 keyExtractor={(item) => item.id}

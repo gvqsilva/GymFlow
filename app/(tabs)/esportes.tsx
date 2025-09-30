@@ -74,7 +74,7 @@ export default function SportsScreen() {
     if (isLoading) {
         return (
             <View style={styles.container}>
-                 <Stack.Screen options={{ headerShown: true, title: "Registar Esporte", headerStyle: { backgroundColor: themeColor }, headerTintColor: '#fff' }} />
+                 <Stack.Screen options={{ headerShown: true, title: "Esportes", headerStyle: { backgroundColor: themeColor }, headerTintColor: '#fff' }} />
                 <ActivityIndicator size="large" color={themeColor} style={{ marginTop: 30 }}/>
             </View>
         );

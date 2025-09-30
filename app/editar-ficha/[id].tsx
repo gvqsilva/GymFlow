@@ -81,7 +81,7 @@ export default function EditWorkoutScreen() {
                 />
                 <Pressable style={styles.addButton} onPress={() => router.push({ pathname: '/exercicio-modal', params: { workoutId: id } })}>
                     <Ionicons name="add" size={32} color="white" />
-                    <Text style={styles.addButtonText}>Adicionar Exercício</Text>
+                    <Text style={styles.addButtonText}>Adicionar Exercício </Text>
                 </Pressable>
             </View>
         </GestureHandlerRootView>
