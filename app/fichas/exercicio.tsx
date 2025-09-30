@@ -3,15 +3,16 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, ScrollView } from 'react-native';
 import { useLocalSearchParams, Stack } from 'expo-router';
-import { WORKOUT_DATA } from '../../constants/workoutData';
-import { Exercise } from '../../constants/workoutData';
+import { useWorkouts } from '../../hooks/useWorkouts'; // Importa o hook
 
 const themeColor = '#5a4fcf';
 
 export default function ExerciseDetailScreen() {
     const { workoutId, exerciseId } = useLocalSearchParams<{ workoutId: string, exerciseId: string }>();
+    const { workouts } = useWorkouts(); // Usa o hook para obter os dados dinâmicos
     
-    const exercise: Exercise | undefined = WORKOUT_DATA[workoutId!]?.exercises.find(ex => ex.id === exerciseId);
+    // Procura o exercício nos dados dinâmicos
+    const exercise = workoutId && exerciseId ? workouts[workoutId]?.exercises.find(ex => ex.id === exerciseId) : undefined;
 
     if (!exercise) {
         return <View style={styles.container}><Text>Exercício não encontrado!</Text></View>;
@@ -32,7 +33,11 @@ export default function ExerciseDetailScreen() {
             <View style={styles.videoContainer}>
                 <Text style={styles.videoTitle}>Vídeo Explicativo</Text>
                 <View style={styles.imageWrapper}>
-                    <Image source={{ uri: exercise.gifUrl }} style={styles.gif} resizeMode="contain" />
+                    {exercise.gifUrl ? (
+                        <Image source={{ uri: exercise.gifUrl }} style={styles.gif} resizeMode="contain" />
+                    ) : (
+                        <Text style={styles.noGifText}>Nenhum GIF disponível</Text>
+                    )}
                 </View>
             </View>
         </ScrollView>
@@ -40,46 +45,14 @@ export default function ExerciseDetailScreen() {
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#f0f2f5',
-    },
-    header: {
-        backgroundColor: themeColor,
-        padding: 20,
-    },
-    headerText: {
-        color: 'white',
-        fontSize: 16,
-        marginBottom: 5,
-    },
-    detailsRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between'
-    },
-    videoContainer: {
-        margin: 20,
-        padding: 20,
-        backgroundColor: 'white',
-        borderRadius: 15,
-        alignItems: 'center',
-        elevation: 3,
-    },
-    videoTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        marginBottom: 15,
-        color: '#333',
-    },
-    imageWrapper: {
-        width: '100%',
-        aspectRatio: 1,
-        backgroundColor: '#e9e9e9',
-        borderRadius: 10,
-        overflow: 'hidden',
-    },
-    gif: {
-        width: '100%',
-        height: '100%',
-    },
+    container: { flex: 1, backgroundColor: '#f0f2f5' },
+    header: { backgroundColor: themeColor, padding: 20, },
+    headerText: { color: 'white', fontSize: 16, marginBottom: 5, },
+    detailsRow: { flexDirection: 'row', justifyContent: 'space-between' },
+    videoContainer: { margin: 20, padding: 20, backgroundColor: 'white', borderRadius: 15, alignItems: 'center', elevation: 3, },
+    videoTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 15, color: '#333', },
+    imageWrapper: { width: '100%', aspectRatio: 1, backgroundColor: '#e9e9e9', borderRadius: 10, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' },
+    gif: { width: '100%', height: '100%', },
+    noGifText: { color: 'gray', fontStyle: 'italic' },
 });
+

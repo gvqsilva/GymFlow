@@ -3,10 +3,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, Pressable, Switch, Alert, ScrollView } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import { scheduleNextReminder } from '../../lib/notificationService'; // Importa a nossa nova função
+import { scheduleNextReminder } from '../../lib/notificationService';
 
 const themeColor = '#5a4fcf';
 
@@ -21,6 +21,7 @@ Notifications.setNotificationHandler({
 });
 
 export default function SettingsScreen() {
+    const router = useRouter();
     const [isReminderEnabled, setIsReminderEnabled] = useState(false);
     const [reminderTime, setReminderTime] = useState(new Date(new Date().setHours(8, 0, 0, 0)));
     const [showTimePicker, setShowTimePicker] = useState(false);
@@ -42,16 +43,14 @@ export default function SettingsScreen() {
         loadReminderSettings();
     }, [loadReminderSettings]);
     
-    // Função central para guardar as alterações e reagendar a notificação
     const handleSettingsChange = async (enabled: boolean, time: Date) => {
         const newSettings = { enabled, time: time.toISOString() };
         await AsyncStorage.setItem('reminderSettings', JSON.stringify(newSettings));
-        await scheduleNextReminder(); // A nossa função central faz todo o trabalho
+        await scheduleNextReminder();
         
         if (enabled) {
             Alert.alert("Sucesso!", `Lembrete atualizado.`);
         } else {
-            // A função scheduleNextReminder já cancela as notificações, mas podemos dar um feedback mais direto
             await Notifications.cancelAllScheduledNotificationsAsync();
             Alert.alert("Lembrete Desativado", "As notificações de creatina foram canceladas.");
         }
@@ -93,6 +92,14 @@ export default function SettingsScreen() {
                     />
                 </View>
 
+                {/* NOVO BOTÃO PARA GERIR FICHAS */}
+                <Pressable style={styles.linkCard} onPress={() => router.push('/gerir-fichas')}>
+                    <View>
+                        <Text style={styles.cardTitle}>Gerenciar Fichas de Treino</Text>
+                        <Text style={styles.cardSubtitle}>Adicione, edite ou apague exercícios</Text>
+                    </View>
+                </Pressable>
+
                 {showTimePicker && (
                     <DateTimePicker
                         value={reminderTime}
@@ -110,8 +117,33 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: '#f0f2f5' },
     container: { padding: 20 },
-    card: { backgroundColor: 'white', borderRadius: 20, paddingHorizontal: 25, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3, height: 95 },
-    cardTitle: { fontSize: 22, fontWeight: 'bold', color: '#333' },
+    card: { 
+        backgroundColor: 'white', 
+        borderRadius: 20, 
+        padding: 20, 
+        marginBottom: 20, 
+        shadowColor: '#000', 
+        shadowOffset: { width: 0, height: 2 }, 
+        shadowOpacity: 0.1, 
+        shadowRadius: 4, 
+        elevation: 3,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+    },
+    linkCard: {
+        backgroundColor: 'white', 
+        borderRadius: 20, 
+        padding: 20, 
+        marginBottom: 20, 
+        shadowColor: '#000', 
+        shadowOffset: { width: 0, height: 2 }, 
+        shadowOpacity: 0.1, 
+        shadowRadius: 4, 
+        elevation: 3,
+    },
+    cardTitle: { fontSize: 20, fontWeight: 'bold', color: '#333' },
+    cardSubtitle: { fontSize: 14, color: 'gray', marginTop: 5 },
     reminderTimeText: { fontSize: 16, color: themeColor, marginTop: 5, fontWeight: 'bold' },
 });
 

@@ -1,50 +1,96 @@
-# Welcome to your Expo app 👋
+# 🏋️‍♂️ GymFlow: O Diário de Atleta Completo
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+## 🚀 Visão
+**De um Diário de Treino a um Parceiro de Performance**
 
-## Get started
+O **GymFlow** nasceu como um especialista em musculação, mas a sua próxima grande evolução é transformá-lo num verdadeiro **Diário de Atleta**.  
+Esta ferramenta foi desenhada para **compreender e registar toda a sua vida desportiva**, desde o ginásio ao campo de futebol, oferecendo **controlo total** para adaptar a sua rotina à medida que evolui.
 
-1. Install dependencies
+Essa transformação será alcançada através de **duas grandes funcionalidades interligadas**:
 
+- **Registo Multi-Desportivo**
+- **Gestão Dinâmica de Fichas**
+
+---
+
+## ⚡ Funcionalidades Principais
+
+### 1️⃣ Registo Multi-Desportivo
+O aplicativo reconhece que a sua vida de atleta **vai além da musculação**.
+
+- **Hub de Atividades Centralizado**  
+  Uma nova aba **"Esportes"** permite registar rapidamente qualquer atividade do seu dia:  
+  *Musculação, Vôlei, Futebol, Boxe, etc.*
+
+- **Métricas Inteligentes**  
+  O registo adapta-se automaticamente ao desporto:  
+  - Para futebol, registe **duração** e **intensidade** de um jogo.  
+  - Para musculação, continue usando fichas **detalhadas de exercícios**.
+
+- **Visão Completa**  
+  Registe várias atividades no mesmo dia e visualize **um resumo semanal** no painel principal, ajudando a:
+  - **Gerir carga de treino**  
+  - **Evitar overtraining**
+
+---
+
+### 2️⃣ Gestão Dinâmica de Fichas
+Personalize os seus treinos **sem precisar tocar no código**.
+
+- **Centro de Controlo**  
+  Dentro da aba **"Configurações"**, uma nova secção **"Gerir Fichas de Musculação"** funciona como uma oficina para **criar e refinar seus treinos**.
+
+- **Edição Completa e Intuitiva**  
+  Interface simples e moderna com **arrastar e soltar (drag & drop)** para:
+  - Adicionar exercícios
+  - Editar detalhes
+  - Apagar exercícios
+  - Reordenar fichas
+
+- **Sincronização Automática**  
+  Alterações feitas nas configurações são **refletidas instantaneamente** no ecrã de treino.
+
+---
+
+## 🔗 A Sinergia Perfeita: O App em Ação
+A verdadeira força do GymFlow está na **integração destas funcionalidades**.  
+
+Imagine o seguinte cenário:
+
+> Você joga uma **partida intensa de futebol na terça-feira** e regista-a no aplicativo.  
+> O próximo treino de musculação, na quarta-feira, seria a **Ficha C (Pernas)**.  
+>  
+> Sabendo que as suas pernas estão cansadas, você vai às configurações e:
+> - Diminui o volume/intensidade dos exercícios.
+> - Reordena a ficha para **começar com algo mais leve**.  
+> 
+> Resultado: **o aplicativo adapta-se à sua realidade**, tornando-se um **parceiro ativo e inteligente**, ajudando a **tomar melhores decisões** sobre treino e recuperação.
+
+---
+
+## 🛠️ Tecnologias Futuras
+O GymFlow será expandido utilizando tecnologias modernas, como:
+- **React Native** para desenvolvimento mobile
+- **Async Storage** para armazenamento local
+- **Notificações Push** para lembretes de treino
+- **Integração com APIs esportivas** para estatísticas em tempo real
+
+---
+
+## 📌 Roadmap
+- [ ] Implementar aba **Esportes** para registo multi-desportivo  
+- [ ] Criar sistema de **edição dinâmica de fichas**  
+- [ ] Adicionar **resumo semanal** no painel principal  
+- [ ] Sistema inteligente de **alerta para overtraining**  
+- [ ] Integração com **dispositivos wearables** (futuro)
+
+---
+
+## 🧑‍💻 Contribuindo
+Quer ajudar a construir o futuro do GymFlow?  
+Siga os passos:
+
+1. Faça um fork do repositório
+2. Crie uma branch:  
    ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+   git checkout -b feature/nova-funcionalidade

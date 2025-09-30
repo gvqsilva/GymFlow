@@ -2,73 +2,84 @@
 
 import React from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, Alert } from 'react-native';
-import { useLocalSearchParams, Link, Stack } from 'expo-router';
+import { useLocalSearchParams, Link, Stack, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { WORKOUT_DATA } from '../../constants/workoutData';
-import * as Haptics from 'expo-haptics'; // Importa o módulo de vibração
+import { useWorkouts } from '../../hooks/useWorkouts'; // Importa o hook
+import * as Haptics from 'expo-haptics';
 
 const themeColor = '#5a4fcf';
 
+const getLocalDateString = (date = new Date()) => {
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
 export default function WorkoutDetailScreen() {
-    const { id } = useLocalSearchParams<{ id: string }>();
-    const workout = id ? WORKOUT_DATA[id] : undefined;
+    const { id, title } = useLocalSearchParams<{ id: string, title?: string }>();
+    const { workouts, refreshWorkouts } = useWorkouts(); // Usa o hook para obter os dados dinâmicos
+
+    // Recarrega os dados sempre que o ecrã fica em foco
+    useFocusEffect(
+        React.useCallback(() => {
+            refreshWorkouts();
+        }, [])
+    );
+
+    const workout = id ? workouts[id] : undefined;
 
     const handleLogWorkout = async () => {
-        if (!id) {
+        if (!id || !workout) { // Adiciona verificação para workout
             Alert.alert("Erro", "Não foi possível identificar o treino.");
             return;
         }
 
         try {
-            const today = new Date().toISOString().split('T')[0];
-            const workoutEntry = { date: today, type: id };
+            const today = getLocalDateString();
+            const workoutEntry = { date: today, category: 'Musculação', details: { type: id } };
 
             const historyJSON = await AsyncStorage.getItem('workoutHistory');
             let history: any[] = historyJSON ? JSON.parse(historyJSON) : [];
-            
-            if (history.length > 0 && typeof history[0] === 'string') {
-                history = history.map(dateString => ({ date: dateString, type: 'A' })); 
-            }
 
-            const todayLogIndex = history.findIndex((entry: {date: string}) => entry.date === today);
+            const todayMusculacaoLogIndex = history.findIndex(
+                (entry: { date: string, category: string }) => entry.date === today && entry.category === 'Musculação'
+            );
 
             const saveWorkout = async (isUpdate: boolean) => {
-                // LÓGICA PRINCIPAL: Define o próximo treino na sequência
-                let nextWorkoutId = 'A';
-                if (id === 'A') nextWorkoutId = 'B';
-                if (id === 'B') nextWorkoutId = 'C';
-                if (id === 'C') nextWorkoutId = 'A';
+                const workoutIds = Object.keys(workouts);
+                const currentIndex = workoutIds.indexOf(id);
+                const nextIndex = (currentIndex + 1) % workoutIds.length;
+                const nextWorkoutId = workoutIds[nextIndex];
 
-                // Salva o próximo treino na memória para a Tela Home usar
                 await AsyncStorage.setItem('nextWorkoutId', nextWorkoutId);
 
-                // Salva o histórico do treino atual
                 if (isUpdate) {
-                    history[todayLogIndex] = workoutEntry;
+                    history[todayMusculacaoLogIndex] = workoutEntry;
                 } else {
                     history.push(workoutEntry);
                 }
                 await AsyncStorage.setItem('workoutHistory', JSON.stringify(history));
 
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); // VIBRAÇÃO DE SUCESSO
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
 
                 const messageAction = isUpdate ? "atualizado para" : "contabilizado como";
-                Alert.alert("Sucesso!", `Treino de hoje ${messageAction} ${id}.`);
+                Alert.alert("Sucesso!", `Treino de hoje ${messageAction} ${workout.name}.`);
             };
 
-            if (todayLogIndex === -1) {
-                await saveWorkout(false); // Salva como novo treino
+            if (todayMusculacaoLogIndex === -1) {
+                await saveWorkout(false);
             } else {
-                const loggedWorkout = history[todayLogIndex];
-                if (loggedWorkout.type === id) {
-                    Alert.alert("Aviso", `O treino ${id} já foi contabilizado hoje.`);
+                const loggedWorkout = history[todayMusculacaoLogIndex];
+                if (loggedWorkout.details.type === id) {
+                    Alert.alert("Aviso", `O treino de musculação ${workout.name} já foi contabilizado hoje.`);
                 } else {
                     Alert.alert(
                         "Substituir Treino?",
-                        `Você já contabilizou o Treino ${loggedWorkout.type} hoje. Deseja substituí-lo pelo Treino ${id}?`,
+                        `Você já contabilizou o Treino ${loggedWorkout.details.type} hoje. Deseja substituí-lo pelo Treino ${workout.name}?`,
                         [
                             { text: "Cancelar", style: "cancel" },
-                            { text: "Sim, Substituir", style: "default", onPress: () => saveWorkout(true) } // Atualiza o treino existente
+                            { text: "Sim, Substituir", style: "default", onPress: () => saveWorkout(true) }
                         ]
                     );
                 }
@@ -78,7 +89,7 @@ export default function WorkoutDetailScreen() {
             Alert.alert("Erro de Dados", "Ocorreu um erro ao ler o seu histórico.");
         }
     };
-
+    
     const handleClearHistory = () => {
         Alert.alert(
             "Limpar Histórico de Treinos",
@@ -90,7 +101,6 @@ export default function WorkoutDetailScreen() {
                     style: "destructive", 
                     onPress: async () => {
                         try {
-                            // Limpa tanto o histórico quanto a sequência de treinos
                             await AsyncStorage.multiRemove(['workoutHistory', 'nextWorkoutId']);
                             Alert.alert("Sucesso", "Seu histórico e a sequência de treinos foram reiniciados.");
                         } catch (e) {
@@ -102,11 +112,13 @@ export default function WorkoutDetailScreen() {
         );
     };
 
-    if (!workout) { return null; }
+    if (!workout) { 
+        return <View style={styles.container}><Text>A carregar ficha...</Text></View>; 
+    }
 
     return (
         <View style={styles.container}>
-            <Stack.Screen options={{ title: `Treino ${workout.id}` }} />
+            <Stack.Screen options={{ title: title || workout.name }} />
              <View style={styles.header}>
                 <Text style={styles.headerText}>{workout.groups}</Text>
             </View>
@@ -154,3 +166,4 @@ const styles = StyleSheet.create({
     seriesReps: { alignItems: 'flex-end', marginLeft: 10 },
     seriesRepsText: { fontSize: 14, color: '#333' },
 });
+

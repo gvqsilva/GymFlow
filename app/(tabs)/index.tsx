@@ -1,57 +1,77 @@
 // app/(tabs)/index.tsx
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, Pressable, StatusBar, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, Pressable, StatusBar, ScrollView, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useIsFocused } from '@react-navigation/native';
 import { Link } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { scheduleNextReminder } from '../../lib/notificationService'; // Importa a nossa nova função
+import { scheduleNextReminder } from '../../lib/notificationService';
+import { useWorkouts } from '../../hooks/useWorkouts'; // Importa o hook de dados
 
 const themeColor = '#5a4fcf';
 
+// As suas funções helper 'getLocalDateString' e 'getStartOfWeek'
 const getLocalDateString = (date = new Date()) => {
     const year = date.getFullYear();
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
     const day = date.getDate().toString().padStart(2, '0');
     return `${year}-${month}-${day}`;
 };
+const getStartOfWeek = (date = new Date()) => {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    d.setHours(0, 0, 0, 0);
+    return new Date(d.setDate(diff));
+};
 
-const WorkoutGraph = ({ data }: { data: { [key: string]: number } }) => {
-    const counts = Object.values(data);
-    const maxCount = Math.max(...counts, 1);
-
+// O seu componente 'WeeklySummaryGraph'
+const WeeklySummaryGraph = ({ data }: { data: { [key: string]: number } }) => {
+    const activities = Object.entries(data);
+    const nameMapping: { [key: string]: string } = {
+        'Musculação': 'Acad',
+        'Futebol Society': 'Futebol',
+        'Vólei de Quadra': 'Quadra',
+        'Vólei de Praia': 'Praia',
+        'Boxe': 'Boxe',
+    };
+    if (activities.length === 0) {
+        return (
+            <View style={styles.graphContainer}>
+                <Text style={styles.graphTitle}>Resumo da Semana</Text>
+                <Text style={styles.noActivityText}>Nenhuma atividade registada esta semana.</Text>
+            </View>
+        );
+    }
+    const maxCount = Math.max(...activities.map(([, count]) => count), 1);
     return (
         <View style={styles.graphContainer}>
-            <Text style={styles.graphTitle}>Distribuição de Treinos no Mês</Text>
-            <View style={styles.graph}>
-                <View style={styles.barArea}>
-                    {Object.entries(data).map(([type, count]) => (
-                        <View key={type} style={styles.barWrapper}>
+            <Text style={styles.graphTitle}>Resumo da Semana</Text>
+            <View style={styles.barGraphContainer}>
+                {activities.map(([category, count]) => (
+                    <View key={category} style={styles.barWrapper}>
+                        <View style={styles.barItem}>
+                            <Text style={styles.barLabelCount}>{count}x</Text>
                             <View style={[styles.bar, { height: `${(count / maxCount) * 100}%` }]} />
                         </View>
-                    ))}
-                </View>
-                <View style={styles.labelArea}>
-                    {Object.entries(data).map(([type, count]) => (
-                        <View key={type} style={styles.labelWrapper}>
-                            <Text style={styles.barLabel}>{count}</Text>
-                            <Text style={styles.barTypeLabel}>{type}</Text>
-                        </View>
-                    ))}
-                </View>
+                        <Text style={styles.barLabelCategory}>{nameMapping[category] || category} </Text>
+                    </View>
+                ))}
             </View>
         </View>
     );
 };
 
 export default function HomeScreen() {
+    // CORREÇÃO: Obtemos também a função 'refreshWorkouts'
+    const { workouts, isLoading: isLoadingWorkouts, refreshWorkouts } = useWorkouts();
     const [userName] = useState('Gabriel');
-    const [monthlyWorkouts, setMonthlyWorkouts] = useState(0);
+    const [weeklyGymWorkouts, setWeeklyGymWorkouts] = useState(0);
     const [creatineTaken, setCreatineTaken] = useState(false);
     const [wheyCount, setWheyCount] = useState(0);
-    const [workoutDistribution, setWorkoutDistribution] = useState({ A: 0, B: 0, C: 0 });
-    const [nextWorkout, setNextWorkout] = useState('A');
+    const [weeklySummary, setWeeklySummary] = useState<{ [key: string]: number }>({});
+    const [nextWorkoutId, setNextWorkoutId] = useState('A');
 
     const isFocused = useIsFocused();
 
@@ -68,39 +88,44 @@ export default function HomeScreen() {
             } else {
                 setWheyCount(0);
             }
-            
+
             const workoutHistoryJSON = await AsyncStorage.getItem('workoutHistory');
             if (workoutHistoryJSON) {
-                const history: {date: string, type: string}[] = JSON.parse(workoutHistoryJSON);
-                const currentMonth = new Date().getMonth();
-                const monthlyHistory = history.filter(entry => new Date(entry.date).getMonth() === currentMonth);
-                setMonthlyWorkouts(monthlyHistory.length);
-                const distribution = monthlyHistory.reduce((acc, entry) => {
-                    const type = entry.type as keyof typeof acc;
-                    if (acc[type] !== undefined) acc[type]++;
+                const history: { date: string, category: string }[] = JSON.parse(workoutHistoryJSON);
+                const startOfWeek = getStartOfWeek();
+                const weeklyHistory = history.filter(entry => {
+                    const entryDate = new Date(entry.date);
+                    entryDate.setDate(entryDate.getDate() + 1);
+                    return entryDate >= startOfWeek;
+                });
+                const gymWorkoutsThisWeek = weeklyHistory.filter(entry => entry.category === 'Musculação');
+                setWeeklyGymWorkouts(gymWorkoutsThisWeek.length);
+                const summary = weeklyHistory.reduce((acc, entry) => {
+                    const category = entry.category || 'Outro';
+                    acc[category] = (acc[category] || 0) + 1;
                     return acc;
-                }, { A: 0, B: 0, C: 0 });
-                setWorkoutDistribution(distribution);
+                }, {} as { [key: string]: number });
+                setWeeklySummary(summary);
             } else {
-                setMonthlyWorkouts(0);
-                setWorkoutDistribution({ A: 0, B: 0, C: 0 });
+                setWeeklyGymWorkouts(0);
+                setWeeklySummary({});
             }
 
-            const savedNextWorkout = await AsyncStorage.getItem('nextWorkoutId');
-            setNextWorkout(savedNextWorkout || 'A');
+            const savedNextWorkoutId = await AsyncStorage.getItem('nextWorkoutId');
+            setNextWorkoutId(savedNextWorkoutId || 'A');
 
         } catch (e) {
             console.error("Failed to load data.", e);
         }
     }, []);
-
-    // Atualiza o agendamento de notificações sempre que a tela fica em foco
+    
     useEffect(() => {
         if (isFocused) {
             loadData();
+            refreshWorkouts(); // CORREÇÃO: Recarrega a lista de treinos
             scheduleNextReminder();
         }
-    }, [isFocused, loadData]);
+    }, [isFocused, loadData, refreshWorkouts]); // Adiciona refreshWorkouts à dependência
 
     const handleCreatinePress = async () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -112,7 +137,6 @@ export default function HomeScreen() {
             } else {
                 await AsyncStorage.removeItem('creatineDate');
             }
-            // Após alterar o estado da creatina, reagenda a notificação
             await scheduleNextReminder();
         } catch (e) { console.error("Failed to save creatine status.", e); }
     };
@@ -136,6 +160,9 @@ export default function HomeScreen() {
         } catch (e) { console.error("Failed to save whey count.", e); }
     };
 
+    // Encontra o nome do próximo treino usando o ID
+    const nextWorkoutName = isLoadingWorkouts ? 'A carregar...' : (workouts[nextWorkoutId]?.name || 'Treino');
+
     return (
         <SafeAreaView style={styles.safeArea}>
             <StatusBar barStyle="light-content" backgroundColor={themeColor} />
@@ -145,7 +172,7 @@ export default function HomeScreen() {
                         <Text style={styles.greetingSmall}>Olá,</Text>
                         <Text style={styles.greetingLarge}>{userName}</Text>
                     </View>
-                    <Text style={styles.workoutCount}>{`Treinos no mês: ${monthlyWorkouts}` } </Text>
+                    <Text style={styles.workoutCount}>{`Acad. na semana: ${weeklyGymWorkouts}`} </Text>
                 </View>
 
                 <View style={styles.content}>
@@ -158,7 +185,6 @@ export default function HomeScreen() {
                             {creatineTaken ? '✔' : '❌'}
                         </Text>
                     </Pressable>
-
                     <View style={styles.card}>
                         <View>
                             <Text style={styles.cardTitle}>Whey</Text>
@@ -166,21 +192,21 @@ export default function HomeScreen() {
                         </View>
                         <View style={styles.wheyCounter}>
                             <Pressable onPress={handleWheyDecrement} style={styles.wheyButton}>
-                                <Text style={styles.wheyArrow}>{'<'}</Text>
+                                <Text style={styles.wheyArrow}>{'<'} </Text>
                             </Pressable>
                             <Text style={styles.wheyCountText}>{wheyCount}</Text>
                             <Pressable onPress={handleWheyIncrement} style={styles.wheyButton}>
-                                <Text style={styles.wheyArrow}>{'>'}</Text>
+                                <Text style={styles.wheyArrow}>{'>'} </Text>
                             </Pressable>
                         </View>
                     </View>
                     
                     <View style={styles.card}>
-                        <Text style={styles.cardTitle}>Treino {nextWorkout}</Text>
+                        <Text style={styles.cardTitle}>{nextWorkoutName}</Text>
                         <Link 
                             href={{
                                 pathname: "/fichas/[id]",
-                                params: { id: nextWorkout }
+                                params: { id: nextWorkoutId, title: nextWorkoutName }
                             }} 
                             asChild
                         >
@@ -190,12 +216,13 @@ export default function HomeScreen() {
                         </Link>
                     </View>
 
-                    <WorkoutGraph data={workoutDistribution} />
+                    <WeeklySummaryGraph data={weeklySummary} />
                 </View>
             </ScrollView>
         </SafeAreaView>
     );
 };
+
 
 const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: '#f0f2f5' },
@@ -216,13 +243,46 @@ const styles = StyleSheet.create({
     buttonText: { color: 'white', fontWeight: 'bold' },
     graphContainer: { backgroundColor: 'white', borderRadius: 20, padding: 20, elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
     graphTitle: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 20, textAlign: 'center' },
-    graph: { height: 150 },
-    barArea: { flexDirection: 'row', flex: 1, justifyContent: 'space-around', alignItems: 'flex-end' },
-    barWrapper: { flex: 1, alignItems: 'center' },
-    bar: { backgroundColor: themeColor, width: 35, borderRadius: 5 },
-    labelArea: { flexDirection: 'row', justifyContent: 'space-around', paddingTop: 5 },
-    labelWrapper: { flex: 1, alignItems: 'center' },
-    barLabel: { fontSize: 14, fontWeight: 'bold', color: '#333' },
-    barTypeLabel: { fontSize: 14, color: 'gray' },
+    noActivityText: {
+        textAlign: 'center',
+        color: 'gray',
+        fontSize: 16,
+        paddingVertical: 40,
+    },
+    barGraphContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        alignItems: 'flex-end',
+        height: 150,
+        marginTop: 10,
+    },
+    barWrapper: {
+        alignItems: 'center',
+        flex: 1,
+        marginHorizontal: 5,
+    },
+    barItem: {
+        flex: 1,
+        width: '100%',
+        alignItems: 'center',
+        justifyContent: 'flex-end',
+    },
+    bar: {
+        width: 35,
+        backgroundColor: themeColor,
+        borderRadius: 5,
+    },
+    barLabelCount: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#333',
+        marginBottom: 5,
+    },
+    barLabelCategory: {
+        marginTop: 8,
+        fontSize: 12,
+        color: 'gray',
+        textAlign: 'center',
+    }
 });
 
