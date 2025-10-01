@@ -115,7 +115,7 @@ export async function scheduleNextReminder() {
     );
 
     // 7) agenda reforços (1h, 2h, 3h depois) também com DATE
-    const numberOfReinforcements = 5;
+    const numberOfReinforcements = 6;
     for (let i = 1; i <= numberOfReinforcements; i++) {
       const reinforcementDate = new Date(nextTriggerDate.getTime() + i * 3600 * 1000);
       await Notifications.scheduleNotificationAsync({
