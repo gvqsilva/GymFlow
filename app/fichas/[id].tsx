@@ -1,13 +1,15 @@
 // app/fichas/[id].tsx
 
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, Alert } from 'react-native';
 import { useLocalSearchParams, Link, Stack, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useWorkouts } from '../../hooks/useWorkouts'; // Importa o hook
+import { useWorkouts } from '../../hooks/useWorkouts';
 import * as Haptics from 'expo-haptics';
+import { MET_DATA } from '../../constants/metData'; // Importa a base de dados de METs
 
 const themeColor = '#5a4fcf';
+const PROFILE_KEY = 'userProfile';
 
 const getLocalDateString = (date = new Date()) => {
     const year = date.getFullYear();
@@ -18,26 +20,48 @@ const getLocalDateString = (date = new Date()) => {
 
 export default function WorkoutDetailScreen() {
     const { id, title } = useLocalSearchParams<{ id: string, title?: string }>();
-    const { workouts, refreshWorkouts } = useWorkouts(); // Usa o hook para obter os dados dinâmicos
+    const { workouts, refreshWorkouts } = useWorkouts();
+    const [userWeight, setUserWeight] = useState(0);
 
-    // Recarrega os dados sempre que o ecrã fica em foco
+    // Carrega o peso do utilizador e atualiza as fichas
     useFocusEffect(
         React.useCallback(() => {
             refreshWorkouts();
-        }, [])
+            const loadProfile = async () => {
+                const profileJSON = await AsyncStorage.getItem(PROFILE_KEY);
+                if (profileJSON) {
+                    const { weight } = JSON.parse(profileJSON);
+                    setUserWeight(weight || 0);
+                }
+            };
+            loadProfile();
+        }, [refreshWorkouts])
     );
 
     const workout = id ? workouts[id] : undefined;
 
     const handleLogWorkout = async () => {
-        if (!id || !workout) { // Adiciona verificação para workout
+        if (!id || !workout) {
             Alert.alert("Erro", "Não foi possível identificar o treino.");
             return;
         }
 
+        // Calcula as calorias para a musculação
+        const duration = 60; // Duração padrão
+        const intensity = 'Moderada';
+        const metValue = MET_DATA['Musculação']?.[intensity] || 0;
+        const calories = userWeight > 0 ? (metValue * userWeight * 3.5) / 200 * duration : 0;
+
         try {
             const today = getLocalDateString();
-            const workoutEntry = { date: today, category: 'Musculação', details: { type: id } };
+            const workoutEntry = { 
+                date: today, 
+                category: 'Musculação', 
+                details: { 
+                    type: id,
+                    calories: Math.round(calories), // Adiciona as calorias ao registo
+                } 
+            };
 
             const historyJSON = await AsyncStorage.getItem('workoutHistory');
             let history: any[] = historyJSON ? JSON.parse(historyJSON) : [];

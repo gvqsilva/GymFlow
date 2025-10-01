@@ -18,7 +18,7 @@ const sports = [
 
 // Resumo mensal para cada desporto
 const MonthlyActivitySummary = ({ history, sportName }: { history: any[], sportName: string }) => {
-    const daysOfWeek = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    const daysOfWeek = ['Dom ', 'Seg ', 'Ter ', 'Qua ', 'Qui ', 'Sex ', 'Sáb '];
     const dayCounts = [0, 0, 0, 0, 0, 0, 0];
 
     const currentMonth = new Date().getMonth();
@@ -107,7 +107,7 @@ export default function SportsScreen() {
                                 <View style={styles.cardHeader}>
                                     <IconComponent name={item.icon as any} size={32} color={themeColor} />
                                     <View style={styles.cardTextContainer}>
-                                        <Text style={styles.cardTitle}>{item.name}</Text>
+                                        <Text style={styles.cardTitle}>{item.name} </Text>
                                     </View>
                                     <Ionicons name="chevron-forward-outline" size={24} color="#ccc" />
                                 </View>

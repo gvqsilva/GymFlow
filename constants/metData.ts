@@ -1,0 +1,40 @@
+// constants/metData.ts
+
+/**
+ * Tabela de Equivalentes Metabólicos da Tarefa (METs) para diferentes atividades.
+ * Os valores são estimativas baseadas no Compêndio de Atividades Físicas.
+ * Fonte: https://sites.google.com/site/compendiumofphysicalactivities/
+ */
+
+interface ActivityMETs {
+    [intensity: string]: number;
+}
+
+export const MET_DATA: { [activity: string]: ActivityMETs } = {
+    'Musculação': {
+        'Leve': 3.5,
+        'Moderada': 5.0,
+        'Alta': 6.0, // Treino de força vigoroso
+    },
+    'Vólei de Quadra': {
+        'Leve': 3.0, // Amigável, não competitivo
+        'Moderada': 6.0, // Competitivo
+        'Alta': 8.0, // Jogo intenso
+    },
+    'Vólei de Praia': {
+        'Leve': 4.0,
+        'Moderada': 8.0,
+        'Alta': 8.0, // Já é naturalmente intenso
+    },
+    'Futebol Society': {
+        'Leve': 5.0, // Amigável
+        'Moderada': 8.0,
+        'Alta': 10.0, // Jogo competitivo
+    },
+    'Boxe': {
+        'Leve': 5.5, // Treino de saco, leve
+        'Moderada': 8.0, // Circuito geral (pular corda, abdominais, etc.)
+        'Alta': 10.0, // Circuito de alta intensidade, com pouco descanso
+    },
+};
+

@@ -75,12 +75,21 @@ export default function SettingsScreen() {
         <SafeAreaView style={styles.safeArea}>
             <Stack.Screen options={{ headerShown: true, title: "Configurações", headerStyle: { backgroundColor: themeColor }, headerTintColor: '#fff' }} />
             <ScrollView style={styles.container}>
+                
+                {/* NOVO CARD PARA O PERFIL */}
+                <Pressable style={styles.linkCard} onPress={() => router.push('/perfil-modal')}>
+                    <View>
+                        <Text style={styles.cardTitle}>Meu Perfil </Text>
+                        <Text style={styles.cardSubtitle}>Edite o seu nome e peso </Text>
+                    </View>
+                </Pressable>
+
                 <View style={styles.card}>
                     <View>
                         <Text style={styles.cardTitle}>Lembrete de Creatina</Text>
                         <Pressable onPress={() => setShowTimePicker(true)}>
                             <Text style={styles.reminderTimeText}>
-                                Todos os dias às {formatTime(reminderTime)}
+                                Todos os dias às {formatTime(reminderTime)} 
                             </Text>
                         </Pressable>
                     </View>
@@ -92,14 +101,13 @@ export default function SettingsScreen() {
                     />
                 </View>
 
-                {/* NOVO BOTÃO PARA GERIR FICHAS */}
                 <Pressable style={styles.linkCard} onPress={() => router.push('/gerir-fichas')}>
                     <View>
-                        <Text style={styles.cardTitle}>Gerenciar Fichas de Treino</Text>
-                        <Text style={styles.cardSubtitle}>Adicione, edite ou apague exercícios</Text>
+                        <Text style={styles.cardTitle}>Gerir Fichas de Musculação </Text>
+                        <Text style={styles.cardSubtitle}>Adicione, edite ou apague exercícios </Text>
                     </View>
                 </Pressable>
-
+                
                 {showTimePicker && (
                     <DateTimePicker
                         value={reminderTime}

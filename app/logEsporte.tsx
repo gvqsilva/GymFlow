@@ -1,11 +1,13 @@
 // app/logEsporte.tsx
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, Pressable, Alert, ScrollView } from 'react-native';
-import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
+import { useLocalSearchParams, Stack, useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { MET_DATA } from '../constants/metData'; // Importa a nossa base de dados de METs
 
 const themeColor = '#5a4fcf';
+const PROFILE_KEY = 'userProfile';
 
 // Helper para obter a data local no formato YYYY-MM-DD
 const getLocalDateString = (date = new Date()) => {
@@ -20,8 +22,42 @@ export default function LogSportScreen() {
     const router = useRouter();
 
     const [duration, setDuration] = useState('');
-    const [intensity, setIntensity] = useState<'Leve' | 'Média'  | 'Alta' | null>(null);
+    const [intensity, setIntensity] = useState<'Leve' | 'Moderada' | 'Alta' | null>(null);
     const [notes, setNotes] = useState('');
+    const [userWeight, setUserWeight] = useState(0);
+    const [estimatedCalories, setEstimatedCalories] = useState(0);
+
+    // Carrega o peso do utilizador quando o ecrã fica em foco
+    useFocusEffect(
+        React.useCallback(() => {
+            const loadProfile = async () => {
+                const profileJSON = await AsyncStorage.getItem(PROFILE_KEY);
+                if (profileJSON) {
+                    const { weight } = JSON.parse(profileJSON);
+                    setUserWeight(weight || 0);
+                }
+            };
+            loadProfile();
+        }, [])
+    );
+
+    // Calcula as calorias sempre que a duração, intensidade ou peso mudam
+    useEffect(() => {
+        if (duration && intensity && userWeight > 0 && esporte) {
+            const durationNum = parseInt(duration, 10);
+            const metValue = MET_DATA[esporte]?.[intensity] || 0;
+
+            if (durationNum > 0 && metValue > 0) {
+                // Fórmula: (MET * Peso em kg * 3.5) / 200 * Duração em minutos
+                const calories = (metValue * userWeight * 3.5) / 200 * durationNum;
+                setEstimatedCalories(Math.round(calories));
+            } else {
+                setEstimatedCalories(0);
+            }
+        } else {
+            setEstimatedCalories(0);
+        }
+    }, [duration, intensity, userWeight, esporte]);
 
     const handleSaveActivity = async () => {
         if (!duration || !intensity) {
@@ -32,17 +68,18 @@ export default function LogSportScreen() {
         try {
             const newActivity = {
                 date: getLocalDateString(),
-                category: esporte, // Ex: 'Futebol Society'
+                category: esporte,
                 details: {
                     duration: parseInt(duration, 10),
                     intensity,
                     notes,
+                    calories: estimatedCalories, // Guarda as calorias calculadas
                 }
             };
 
             const historyJSON = await AsyncStorage.getItem('workoutHistory');
             let history = historyJSON ? JSON.parse(historyJSON) : [];
-            history.push(newActivity); // Adiciona a nova atividade ao histórico existente
+            history.push(newActivity);
             await AsyncStorage.setItem('workoutHistory', JSON.stringify(history));
 
             Alert.alert("Sucesso!", `${esporte} registado com sucesso.`);
@@ -59,7 +96,7 @@ export default function LogSportScreen() {
             <Stack.Screen options={{ title: esporte }} />
             
             <View style={styles.card}>
-                <Text style={styles.label}>Duração (minutos)</Text>
+                <Text style={styles.label}>Duração (minutos) </Text>
                 <TextInput
                     style={styles.input}
                     keyboardType="number-pad"
@@ -68,9 +105,9 @@ export default function LogSportScreen() {
                     placeholder="Ex: 90"
                 />
 
-                <Text style={styles.label}>Intensidade</Text>
+                <Text style={styles.label}>Intensidade </Text>
                 <View style={styles.intensityContainer}>
-                    {['Leve', 'Média ', 'Alta '].map((level) => (
+                    {['Leve', 'Moderada', 'Alta'].map((level) => (
                         <Pressable 
                             key={level}
                             style={[
@@ -87,6 +124,14 @@ export default function LogSportScreen() {
                     ))}
                 </View>
 
+                {/* NOVO CAMPO de estimativa de calorias */}
+                {estimatedCalories > 0 && (
+                    <View style={styles.caloriesContainer}>
+                        <Text style={styles.caloriesLabel}>Gasto Calórico Estimado: </Text>
+                        <Text style={styles.caloriesValue}>{estimatedCalories} kcal </Text>
+                    </View>
+                )}
+
                 <Text style={styles.label}>Notas (opcional)</Text>
                 <TextInput
                     style={[styles.input, styles.textArea]}
@@ -98,7 +143,7 @@ export default function LogSportScreen() {
             </View>
 
             <Pressable style={styles.saveButton} onPress={handleSaveActivity}>
-                <Text style={styles.saveButtonText}>Registar Atividade</Text>
+                <Text style={styles.saveButtonText}>Registar Atividade </Text>
             </Pressable>
         </ScrollView>
     );
@@ -117,5 +162,23 @@ const styles = StyleSheet.create({
     intensityTextSelected: { color: 'white', fontWeight: 'bold' },
     saveButton: { backgroundColor: themeColor, padding: 20, borderRadius: 15, alignItems: 'center' },
     saveButtonText: { color: 'white', fontSize: 18, fontWeight: 'bold' },
+    // Novos estilos para o campo de calorias
+    caloriesContainer: {
+        alignItems: 'center',
+        backgroundColor: '#f0f2f5',
+        borderRadius: 10,
+        padding: 15,
+        marginBottom: 20,
+    },
+    caloriesLabel: {
+        fontSize: 14,
+        color: 'gray',
+    },
+    caloriesValue: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: themeColor,
+        marginTop: 5,
+    },
 });
 

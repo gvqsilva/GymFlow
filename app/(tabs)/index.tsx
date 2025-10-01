@@ -1,17 +1,17 @@
 // app/(tabs)/index.tsx
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, Pressable, StatusBar, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, Pressable, StatusBar, ScrollView, Modal, FlatList } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useIsFocused } from '@react-navigation/native';
 import { Link } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { scheduleNextReminder } from '../../lib/notificationService';
-import { useWorkouts } from '../../hooks/useWorkouts'; // Importa o hook de dados
+import { useWorkouts } from '../../hooks/useWorkouts';
+import { Ionicons } from '@expo/vector-icons';
 
 const themeColor = '#5a4fcf';
 
-// As suas funções helper 'getLocalDateString' e 'getStartOfWeek'
 const getLocalDateString = (date = new Date()) => {
     const year = date.getFullYear();
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
@@ -26,15 +26,14 @@ const getStartOfWeek = (date = new Date()) => {
     return new Date(d.setDate(diff));
 };
 
-// O seu componente 'WeeklySummaryGraph'
 const WeeklySummaryGraph = ({ data }: { data: { [key: string]: number } }) => {
     const activities = Object.entries(data);
     const nameMapping: { [key: string]: string } = {
-        'Musculação': 'Acad',
-        'Futebol Society': 'Futebol',
-        'Vólei de Quadra': 'Quadra',
-        'Vólei de Praia': 'Praia',
-        'Boxe': 'Boxe',
+        'Musculação': 'Academia ',
+        'Futebol Society': 'Futebol ',
+        'Vólei de Quadra': 'Quadra ',
+        'Vólei de Praia': 'Praia ',
+        'Boxe': 'Boxe ',
     };
     if (activities.length === 0) {
         return (
@@ -47,12 +46,12 @@ const WeeklySummaryGraph = ({ data }: { data: { [key: string]: number } }) => {
     const maxCount = Math.max(...activities.map(([, count]) => count), 1);
     return (
         <View style={styles.graphContainer}>
-            <Text style={styles.graphTitle}>Resumo da Semana</Text>
+            <Text style={styles.graphTitle}>Resumo da Semana </Text>
             <View style={styles.barGraphContainer}>
                 {activities.map(([category, count]) => (
                     <View key={category} style={styles.barWrapper}>
                         <View style={styles.barItem}>
-                            <Text style={styles.barLabelCount}>{count}x</Text>
+                            <Text style={styles.barLabelCount}>{count}x </Text>
                             <View style={[styles.bar, { height: `${(count / maxCount) * 100}%` }]} />
                         </View>
                         <Text style={styles.barLabelCategory}>{nameMapping[category] || category} </Text>
@@ -64,19 +63,28 @@ const WeeklySummaryGraph = ({ data }: { data: { [key: string]: number } }) => {
 };
 
 export default function HomeScreen() {
-    // CORREÇÃO: Obtemos também a função 'refreshWorkouts'
     const { workouts, isLoading: isLoadingWorkouts, refreshWorkouts } = useWorkouts();
-    const [userName] = useState('Gabriel');
+    const [userName, setUserName] = useState('Utilizador');
     const [weeklyGymWorkouts, setWeeklyGymWorkouts] = useState(0);
     const [creatineTaken, setCreatineTaken] = useState(false);
     const [wheyCount, setWheyCount] = useState(0);
     const [weeklySummary, setWeeklySummary] = useState<{ [key: string]: number }>({});
     const [nextWorkoutId, setNextWorkoutId] = useState('A');
+    const [totalCaloriesToday, setTotalCaloriesToday] = useState(0);
+
+    const [isDetailsModalVisible, setIsDetailsModalVisible] = useState(false);
+    const [todayActivities, setTodayActivities] = useState<any[]>([]);
 
     const isFocused = useIsFocused();
 
     const loadData = useCallback(async () => {
         try {
+            const profileJSON = await AsyncStorage.getItem('userProfile');
+            if (profileJSON) {
+                const { name } = JSON.parse(profileJSON);
+                setUserName(name || 'Utilizador');
+            }
+
             const today = getLocalDateString();
             const creatineDate = await AsyncStorage.getItem('creatineDate');
             setCreatineTaken(creatineDate === today);
@@ -91,7 +99,8 @@ export default function HomeScreen() {
 
             const workoutHistoryJSON = await AsyncStorage.getItem('workoutHistory');
             if (workoutHistoryJSON) {
-                const history: { date: string, category: string }[] = JSON.parse(workoutHistoryJSON);
+                const history: { date: string, category: string, details: { calories?: number, type?: string } }[] = JSON.parse(workoutHistoryJSON);
+                
                 const startOfWeek = getStartOfWeek();
                 const weeklyHistory = history.filter(entry => {
                     const entryDate = new Date(entry.date);
@@ -106,9 +115,18 @@ export default function HomeScreen() {
                     return acc;
                 }, {} as { [key: string]: number });
                 setWeeklySummary(summary);
+
+                const activitiesToday = history.filter(entry => entry.date === today);
+                setTodayActivities(activitiesToday);
+
+                const totalKcal = activitiesToday.reduce((sum, entry) => sum + (entry.details?.calories || 0), 0);
+                setTotalCaloriesToday(totalKcal);
+
             } else {
                 setWeeklyGymWorkouts(0);
                 setWeeklySummary({});
+                setTotalCaloriesToday(0);
+                setTodayActivities([]);
             }
 
             const savedNextWorkoutId = await AsyncStorage.getItem('nextWorkoutId');
@@ -122,10 +140,10 @@ export default function HomeScreen() {
     useEffect(() => {
         if (isFocused) {
             loadData();
-            refreshWorkouts(); // CORREÇÃO: Recarrega a lista de treinos
+            refreshWorkouts();
             scheduleNextReminder();
         }
-    }, [isFocused, loadData, refreshWorkouts]); // Adiciona refreshWorkouts à dependência
+    }, [isFocused, loadData, refreshWorkouts]);
 
     const handleCreatinePress = async () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -160,7 +178,6 @@ export default function HomeScreen() {
         } catch (e) { console.error("Failed to save whey count.", e); }
     };
 
-    // Encontra o nome do próximo treino usando o ID
     const nextWorkoutName = isLoadingWorkouts ? 'A carregar...' : (workouts[nextWorkoutId]?.name || 'Treino');
 
     return (
@@ -176,6 +193,17 @@ export default function HomeScreen() {
                 </View>
 
                 <View style={styles.content}>
+                    <Pressable style={styles.card} onPress={() => setIsDetailsModalVisible(true)}>
+                        <View>
+                            <Text style={styles.cardTitle}>Gasto Calórico</Text>
+                            <Text style={styles.cardDose}>Estimativa de hoje</Text>
+                        </View>
+                        <View style={styles.caloriesDisplay}>
+                            <Text style={styles.caloriesValue}>{totalCaloriesToday}</Text>
+                            <Text style={styles.caloriesUnit}>kcal</Text>
+                        </View>
+                    </Pressable>
+
                     <Pressable style={styles.card} onPress={handleCreatinePress}>
                         <View>
                             <Text style={styles.cardTitle}>Creatina</Text>
@@ -192,11 +220,11 @@ export default function HomeScreen() {
                         </View>
                         <View style={styles.wheyCounter}>
                             <Pressable onPress={handleWheyDecrement} style={styles.wheyButton}>
-                                <Text style={styles.wheyArrow}>{'<'} </Text>
+                                <Text style={styles.wheyArrow}>{'<'}</Text>
                             </Pressable>
                             <Text style={styles.wheyCountText}>{wheyCount}</Text>
                             <Pressable onPress={handleWheyIncrement} style={styles.wheyButton}>
-                                <Text style={styles.wheyArrow}>{'>'} </Text>
+                                <Text style={styles.wheyArrow}>{'>'}</Text>
                             </Pressable>
                         </View>
                     </View>
@@ -219,6 +247,42 @@ export default function HomeScreen() {
                     <WeeklySummaryGraph data={weeklySummary} />
                 </View>
             </ScrollView>
+
+            <Modal
+                animationType="slide"
+                transparent={true}
+                visible={isDetailsModalVisible}
+                onRequestClose={() => setIsDetailsModalVisible(false)}
+            >
+                <Pressable style={styles.modalContainer} onPress={() => setIsDetailsModalVisible(false)}>
+                    <Pressable style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>Detalhes do Gasto Calórico de Hoje </Text>
+                        <FlatList
+                            data={todayActivities}
+                            keyExtractor={(item, index) => `${item.category}-${index}`}
+                            renderItem={({ item }) => {
+                                let activityDisplayName = item.category;
+                                if (item.category === 'Musculação' && item.details?.type) {
+                                    const workoutName = workouts && workouts[item.details.type] ? workouts[item.details.type].name : item.details.type;
+                                    activityDisplayName = `Musculação (${workoutName})`;
+                                }
+                                return (
+                                    <View style={styles.activityItem}>
+                                        <Text style={styles.activityName}>
+                                            {activityDisplayName} 
+                                        </Text>
+                                        <Text style={styles.activityCalories}>{item.details?.calories || 0} kcal </Text>
+                                    </View>
+                                );
+                            }}
+                            ListEmptyComponent={<Text style={styles.noActivityTextModal}>Nenhuma atividade registada.</Text>}
+                        />
+                        <Pressable style={styles.closeButton} onPress={() => setIsDetailsModalVisible(false)}>
+                            <Text style={styles.closeButtonText}>Fechar</Text>
+                        </Pressable>
+                    </Pressable>
+                </Pressable>
+            </Modal>
         </SafeAreaView>
     );
 };
@@ -283,6 +347,73 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: 'gray',
         textAlign: 'center',
-    }
+    },
+    caloriesDisplay: {
+        alignItems: 'flex-end',
+    },
+    caloriesValue: {
+        fontSize: 28,
+        fontWeight: 'bold',
+        color: themeColor,
+    },
+    caloriesUnit: {
+        fontSize: 14,
+        color: 'gray',
+    },
+    // NOVOS ESTILOS para o modal
+    modalContainer: {
+        flex: 1,
+        justifyContent: 'flex-end',
+        backgroundColor: 'rgba(0,0,0,0.5)',
+    },
+    modalContent: {
+        backgroundColor: 'white',
+        padding: 22,
+        paddingBottom: 40,
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        minHeight: '40%',
+        maxHeight: '60%',
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        marginBottom: 20,
+        textAlign: 'center',
+    },
+    activityItem: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingVertical: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: '#eee',
+    },
+    activityName: {
+        fontSize: 16,
+        color: '#333',
+    },
+    activityCalories: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: themeColor,
+    },
+    noActivityTextModal: {
+        textAlign: 'center',
+        color: 'gray',
+        fontSize: 16,
+        paddingVertical: 20,
+    },
+    closeButton: {
+        backgroundColor: themeColor,
+        borderRadius: 10,
+        padding: 15,
+        marginTop: 20,
+        alignItems: 'center',
+    },
+    closeButtonText: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
 });
 
