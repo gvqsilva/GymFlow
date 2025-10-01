@@ -195,19 +195,19 @@ export default function HomeScreen() {
                 <View style={styles.content}>
                     <Pressable style={styles.card} onPress={() => setIsDetailsModalVisible(true)}>
                         <View>
-                            <Text style={styles.cardTitle}>Gasto Calórico</Text>
-                            <Text style={styles.cardDose}>Estimativa de hoje</Text>
+                            <Text style={styles.cardTitle}>Gasto Calórico </Text>
+                            <Text style={styles.cardDose}>Estimativa de hoje </Text>
                         </View>
                         <View style={styles.caloriesDisplay}>
-                            <Text style={styles.caloriesValue}>{totalCaloriesToday}</Text>
-                            <Text style={styles.caloriesUnit}>kcal</Text>
+                            <Text style={styles.caloriesValue}>{totalCaloriesToday} </Text>
+                            <Text style={styles.caloriesUnit}>kcal </Text>
                         </View>
                     </Pressable>
 
                     <Pressable style={styles.card} onPress={handleCreatinePress}>
                         <View>
-                            <Text style={styles.cardTitle}>Creatina</Text>
-                            <Text style={styles.cardDose}>Dose: 6g</Text>
+                            <Text style={styles.cardTitle}>Creatina </Text>
+                            <Text style={styles.cardDose}>Dose: 6g </Text>
                         </View>
                         <Text style={[styles.statusIcon, { color: creatineTaken ? 'green' : 'red' }]}>
                             {creatineTaken ? '✔' : '❌'}
