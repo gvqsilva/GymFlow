@@ -9,7 +9,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const themeColor = '#5a4fcf';
 
 const sports = [
-    { id: 'musculacao', name: 'Academia', icon: 'barbell-outline' as const, library: 'Ionicons' },
+    { id: 'academia', name: 'Academia', icon: 'barbell-outline' as const, library: 'Ionicons' },
     { id: 'volei_quadra', name: 'Vólei de Quadra', icon: 'volleyball' as const, library: 'MaterialCommunityIcons' },
     { id: 'volei_praia', name: 'Vólei de Praia', icon: 'sunny-outline' as const, library: 'Ionicons' },
     { id: 'futebol', name: 'Futebol Society', icon: 'football-outline' as const, library: 'Ionicons' },
@@ -85,7 +85,7 @@ export default function SportsScreen() {
             <Stack.Screen 
               options={{ 
                 headerShown: true, 
-                title: "Registar Esporte", 
+                title: "Esportes", 
                 headerStyle: { backgroundColor: themeColor }, 
                 headerTintColor: '#fff' 
               }} 
