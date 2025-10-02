@@ -10,8 +10,8 @@ const themeColor = '#5a4fcf';
 
 const sports = [
     { id: 'academia', name: 'Academia', icon: 'barbell-outline' as const, library: 'Ionicons' },
-    { id: 'volei_quadra', name: 'Vólei de Quadra', icon: 'volleyball' as const, library: 'MaterialCommunityIcons' },
-    { id: 'volei_praia', name: 'Vólei de Praia', icon: 'sunny-outline' as const, library: 'Ionicons' },
+    { id: 'volei_quadra', name: 'Vôlei de Quadra', icon: 'volleyball' as const, library: 'MaterialCommunityIcons' },
+    { id: 'volei_praia', name: 'Vôlei de Praia', icon: 'sunny-outline' as const, library: 'Ionicons' },
     { id: 'futebol', name: 'Futebol Society', icon: 'football-outline' as const, library: 'Ionicons' },
     { id: 'boxe', name: 'Boxe', icon: 'boxing-glove' as const, library: 'MaterialCommunityIcons' },
 ];
@@ -45,8 +45,8 @@ const MonthlyActivitySummary = ({ history, sportName }: { history: any[], sportN
             <View style={styles.summaryGrid}>
                 {daysOfWeek.map((day, index) => (
                     <View key={day} style={styles.dayColumn}>
-                        <Text style={styles.dayCount}>{dayCounts[index]}</Text>
-                        <Text style={styles.dayLabel}>{day}</Text>
+                        <Text style={styles.dayCount}>{dayCounts[index]} </Text>
+                        <Text style={styles.dayLabel}>{day} </Text>
                     </View>
                 ))}
             </View>
