@@ -107,7 +107,7 @@ export default function LogSportScreen() {
 
                 <Text style={styles.label}>Intensidade </Text>
                 <View style={styles.intensityContainer}>
-                    {['Leve', 'Moderada', 'Alta'].map((level) => (
+                    {['Leve', 'Moderada ', 'Alta '].map((level) => (
                         <Pressable 
                             key={level}
                             style={[
@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
     intensityContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
     intensityButton: { flex: 1, padding: 15, borderRadius: 10, borderWidth: 1, borderColor: '#ddd', alignItems: 'center', marginHorizontal: 5 },
     intensitySelected: { backgroundColor: themeColor, borderColor: themeColor },
-    intensityText: { fontSize: 16, color: '#333' },
+    intensityText: { fontSize: 15, color: '#333' },
     intensityTextSelected: { color: 'white', fontWeight: 'bold' },
     saveButton: { backgroundColor: themeColor, padding: 20, borderRadius: 15, alignItems: 'center' },
     saveButtonText: { color: 'white', fontSize: 18, fontWeight: 'bold' },

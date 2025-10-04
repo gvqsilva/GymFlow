@@ -256,7 +256,7 @@ export default function HomeScreen() {
             >
                 <Pressable style={styles.modalContainer} onPress={() => setIsDetailsModalVisible(false)}>
                     <Pressable style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>Detalhes do Gasto Calórico de Hoje </Text>
+                        <Text style={styles.modalTitle}>Gasto Calórico Detalhado </Text>
                         <FlatList
                             data={todayActivities}
                             keyExtractor={(item, index) => `${item.category}-${index}`}
@@ -267,18 +267,16 @@ export default function HomeScreen() {
                                     activityDisplayName = `Musculação (${workoutName})`;
                                 }
                                 return (
-                                    <View style={styles.activityItem}>
-                                        <Text style={styles.activityName}>
-                                            {activityDisplayName} 
-                                        </Text>
-                                        <Text style={styles.activityCalories}>{item.details?.calories || 0} kcal </Text>
+                                    <View style={styles.activityItem} >
+                                        <Text style={styles.activityName}>{activityDisplayName} </Text>
+                                        <Text style={styles.activityCalories}> {item.details?.calories || 0} kcal </Text>
                                     </View>
                                 );
                             }}
                             ListEmptyComponent={<Text style={styles.noActivityTextModal}>Nenhuma atividade registada.</Text>}
                         />
                         <Pressable style={styles.closeButton} onPress={() => setIsDetailsModalVisible(false)}>
-                            <Text style={styles.closeButtonText}>Fechar</Text>
+                            <Text style={styles.closeButtonText}>Fechar </Text>
                         </Pressable>
                     </Pressable>
                 </Pressable>
