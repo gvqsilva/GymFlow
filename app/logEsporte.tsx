@@ -107,7 +107,7 @@ export default function LogSportScreen() {
 
                 <Text style={styles.label}>Intensidade </Text>
                 <View style={styles.intensityContainer}>
-                    {['Leve', 'Moderada ', 'Alta '].map((level) => (
+                    {['Leve', 'Moderada' , 'Alta' ].map((level) => (
                         <Pressable 
                             key={level}
                             style={[

@@ -18,10 +18,11 @@ const getLocalDateString = (date = new Date()) => {
     const day = date.getDate().toString().padStart(2, '0');
     return `${year}-${month}-${day}`;
 };
+
 const getStartOfWeek = (date = new Date()) => {
     const d = new Date(date);
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    const day = d.getDay(); // Domingo = 0, Segunda = 1, ...
+    const diff = d.getDate() - day; // Subtrai os dias desde Domingo
     d.setHours(0, 0, 0, 0);
     return new Date(d.setDate(diff));
 };
@@ -38,8 +39,8 @@ const WeeklySummaryGraph = ({ data }: { data: { [key: string]: number } }) => {
     if (activities.length === 0) {
         return (
             <View style={styles.graphContainer}>
-                <Text style={styles.graphTitle}>Resumo da Semana</Text>
-                <Text style={styles.noActivityText}>Nenhuma atividade registada esta semana.</Text>
+                <Text style={styles.graphTitle}>Resumo da Semana </Text>
+                <Text style={styles.noActivityText}>Nenhuma atividade registada esta semana. </Text>
             </View>
         );
     }
@@ -54,7 +55,7 @@ const WeeklySummaryGraph = ({ data }: { data: { [key: string]: number } }) => {
                             <Text style={styles.barLabelCount}>{count}x </Text>
                             <View style={[styles.bar, { height: `${(count / maxCount) * 100}%` }]} />
                         </View>
-                        <Text style={styles.barLabelCategory}>{nameMapping[category] || category} </Text>
+                        <Text style={styles.barLabelCategory}>{nameMapping[category] || category}</Text>
                     </View>
                 ))}
             </View>
@@ -71,7 +72,6 @@ export default function HomeScreen() {
     const [weeklySummary, setWeeklySummary] = useState<{ [key: string]: number }>({});
     const [nextWorkoutId, setNextWorkoutId] = useState('A');
     const [totalCaloriesToday, setTotalCaloriesToday] = useState(0);
-
     const [isDetailsModalVisible, setIsDetailsModalVisible] = useState(false);
     const [todayActivities, setTodayActivities] = useState<any[]>([]);
 
@@ -101,14 +101,12 @@ export default function HomeScreen() {
             if (workoutHistoryJSON) {
                 const history: { date: string, category: string, details: { calories?: number, type?: string } }[] = JSON.parse(workoutHistoryJSON);
                 
-                const startOfWeek = getStartOfWeek();
-                const weeklyHistory = history.filter(entry => {
-                    const entryDate = new Date(entry.date);
-                    entryDate.setDate(entryDate.getDate() + 1);
-                    return entryDate >= startOfWeek;
-                });
+                const startOfWeekString = getLocalDateString(getStartOfWeek());
+                const weeklyHistory = history.filter(entry => entry.date >= startOfWeekString);
+                
                 const gymWorkoutsThisWeek = weeklyHistory.filter(entry => entry.category === 'Musculação');
                 setWeeklyGymWorkouts(gymWorkoutsThisWeek.length);
+                
                 const summary = weeklyHistory.reduce((acc, entry) => {
                     const category = entry.category || 'Outro';
                     acc[category] = (acc[category] || 0) + 1;
@@ -141,7 +139,12 @@ export default function HomeScreen() {
         if (isFocused) {
             loadData();
             refreshWorkouts();
-            scheduleNextReminder();
+            // CORREÇÃO: Adiciona uma verificação de segurança antes de chamar a função
+            if (typeof scheduleNextReminder === 'function') {
+                scheduleNextReminder();
+            } else {
+                console.warn("A função scheduleNextReminder não foi encontrada. Verifique a importação e a localização do ficheiro.");
+            }
         }
     }, [isFocused, loadData, refreshWorkouts]);
 
@@ -155,7 +158,10 @@ export default function HomeScreen() {
             } else {
                 await AsyncStorage.removeItem('creatineDate');
             }
-            await scheduleNextReminder();
+            // CORREÇÃO: Adiciona uma verificação de segurança antes de chamar a função
+            if (typeof scheduleNextReminder === 'function') {
+                await scheduleNextReminder();
+            }
         } catch (e) { console.error("Failed to save creatine status.", e); }
     };
 
@@ -199,15 +205,15 @@ export default function HomeScreen() {
                             <Text style={styles.cardDose}>Estimativa de hoje </Text>
                         </View>
                         <View style={styles.caloriesDisplay}>
-                            <Text style={styles.caloriesValue}>{totalCaloriesToday} </Text>
+                            <Text style={styles.caloriesValue}>{totalCaloriesToday}</Text>
                             <Text style={styles.caloriesUnit}>kcal </Text>
                         </View>
                     </Pressable>
 
                     <Pressable style={styles.card} onPress={handleCreatinePress}>
                         <View>
-                            <Text style={styles.cardTitle}>Creatina </Text>
-                            <Text style={styles.cardDose}>Dose: 6g </Text>
+                            <Text style={styles.cardTitle}>Creatina</Text>
+                            <Text style={styles.cardDose}>Dose: 6g</Text>
                         </View>
                         <Text style={[styles.statusIcon, { color: creatineTaken ? 'green' : 'red' }]}>
                             {creatineTaken ? '✔' : '❌'}
@@ -256,7 +262,7 @@ export default function HomeScreen() {
             >
                 <Pressable style={styles.modalContainer} onPress={() => setIsDetailsModalVisible(false)}>
                     <Pressable style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>Gasto Calórico Detalhado </Text>
+                        <Text style={styles.modalTitle}>Detalhes do Gasto Calórico de Hoje</Text>
                         <FlatList
                             data={todayActivities}
                             keyExtractor={(item, index) => `${item.category}-${index}`}
@@ -267,16 +273,18 @@ export default function HomeScreen() {
                                     activityDisplayName = `Musculação (${workoutName})`;
                                 }
                                 return (
-                                    <View style={styles.activityItem} >
-                                        <Text style={styles.activityName}>{activityDisplayName} </Text>
-                                        <Text style={styles.activityCalories}> {item.details?.calories || 0} kcal </Text>
+                                    <View style={styles.activityItem}>
+                                        <Text style={styles.activityName}>
+                                            {activityDisplayName}
+                                        </Text>
+                                        <Text style={styles.activityCalories}>{item.details?.calories || 0} kcal</Text>
                                     </View>
                                 );
                             }}
                             ListEmptyComponent={<Text style={styles.noActivityTextModal}>Nenhuma atividade registada.</Text>}
                         />
                         <Pressable style={styles.closeButton} onPress={() => setIsDetailsModalVisible(false)}>
-                            <Text style={styles.closeButtonText}>Fechar </Text>
+                            <Text style={styles.closeButtonText}>Fechar</Text>
                         </Pressable>
                     </Pressable>
                 </Pressable>
@@ -358,7 +366,6 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: 'gray',
     },
-    // NOVOS ESTILOS para o modal
     modalContainer: {
         flex: 1,
         justifyContent: 'flex-end',

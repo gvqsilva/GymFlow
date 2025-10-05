@@ -161,8 +161,8 @@ export default function WorkoutDetailScreen() {
                     <Link href={{ pathname: '/fichas/exercicio', params: { workoutId: id, exerciseId: item.id } }} asChild>
                         <Pressable style={styles.card}>
                             <View style={{flex: 1}}>
-                                <Text style={styles.exerciseName}>{item.name}</Text>
-                                <Text style={styles.muscleTag}>{item.muscle}</Text>
+                                <Text style={styles.exerciseName}>{item.name} </Text>
+                                <Text style={styles.muscleTag}>{item.muscle} </Text>
                                 {item.obs ? <Text style={styles.obsText}>Obs: {item.obs} </Text> : null}
                             </View>
                             <View style={styles.seriesReps}>
