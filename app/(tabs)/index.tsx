@@ -274,9 +274,7 @@ export default function HomeScreen() {
                                 }
                                 return (
                                     <View style={styles.activityItem}>
-                                        <Text style={styles.activityName}>
-                                            {activityDisplayName}
-                                        </Text>
+                                        <Text style={styles.activityName}>{activityDisplayName} </Text>
                                         <Text style={styles.activityCalories}>{item.details?.calories || 0} kcal</Text>
                                     </View>
                                 );

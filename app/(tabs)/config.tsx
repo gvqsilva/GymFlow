@@ -76,11 +76,10 @@ export default function SettingsScreen() {
             <Stack.Screen options={{ headerShown: true, title: "Configurações", headerStyle: { backgroundColor: themeColor }, headerTintColor: '#fff' }} />
             <ScrollView style={styles.container}>
                 
-                {/* NOVO CARD PARA O PERFIL */}
                 <Pressable style={styles.linkCard} onPress={() => router.push('/perfil-modal')}>
                     <View>
-                        <Text style={styles.cardTitle}>Meu Perfil </Text>
-                        <Text style={styles.cardSubtitle}>Edite o seu nome e peso </Text>
+                        <Text style={styles.cardTitle}>Meu Perfil</Text>
+                        <Text style={styles.cardSubtitle}>Edite o seu nome e peso</Text>
                     </View>
                 </Pressable>
 
@@ -89,7 +88,7 @@ export default function SettingsScreen() {
                         <Text style={styles.cardTitle}>Lembrete de Creatina</Text>
                         <Pressable onPress={() => setShowTimePicker(true)}>
                             <Text style={styles.reminderTimeText}>
-                                Todos os dias às {formatTime(reminderTime)} 
+                                Todos os dias às {formatTime(reminderTime)}
                             </Text>
                         </Pressable>
                     </View>
@@ -103,8 +102,16 @@ export default function SettingsScreen() {
 
                 <Pressable style={styles.linkCard} onPress={() => router.push('/gerir-fichas')}>
                     <View>
-                        <Text style={styles.cardTitle}>Gerir Fichas de Musculação </Text>
-                        <Text style={styles.cardSubtitle}>Adicione, edite ou apague exercícios </Text>
+                        <Text style={styles.cardTitle}>Gerenciar Fichas de Treino</Text>
+                        <Text style={styles.cardSubtitle}>Adicione, edite ou apague exercícios</Text>
+                    </View>
+                </Pressable>
+
+                {/* NOVO CARD PARA A GESTÃO DE DADOS */}
+                <Pressable style={styles.linkCard} onPress={() => router.push('/gestao-dados')}>
+                    <View>
+                        <Text style={styles.cardTitle}>Gestão de Dados</Text>
+                        <Text style={styles.cardSubtitle}>Apague o seu histórico de atividades</Text>
                     </View>
                 </Pressable>
                 
