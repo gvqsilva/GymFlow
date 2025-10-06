@@ -55,7 +55,7 @@ const WeeklySummaryGraph = ({ data }: { data: { [key: string]: number } }) => {
                             <Text style={styles.barLabelCount}>{count}x </Text>
                             <View style={[styles.bar, { height: `${(count / maxCount) * 100}%` }]} />
                         </View>
-                        <Text style={styles.barLabelCategory}>{nameMapping[category] || category}</Text>
+                        <Text style={styles.barLabelCategory}>{nameMapping[category] || category} </Text>
                     </View>
                 ))}
             </View>
@@ -205,7 +205,7 @@ export default function HomeScreen() {
                             <Text style={styles.cardDose}>Estimativa de hoje </Text>
                         </View>
                         <View style={styles.caloriesDisplay}>
-                            <Text style={styles.caloriesValue}>{totalCaloriesToday}</Text>
+                            <Text style={styles.caloriesValue}>{totalCaloriesToday} </Text>
                             <Text style={styles.caloriesUnit}>kcal </Text>
                         </View>
                     </Pressable>
