@@ -5,14 +5,14 @@ import { View, Text, StyleSheet, Image, ScrollView, ActivityIndicator } from 're
 import { useLocalSearchParams, Stack, useFocusEffect } from 'expo-router';
 import { useWorkouts } from '../../hooks/useWorkouts';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-// A dependência 'react-native-chart-kit' foi removida para resolver o erro
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const themeColor = '#5a4fcf';
 
-// NOVO COMPONENTE: Gráfico de barras simples e sem dependências
+// Gráfico de barras simples e robusto
 const EvolutionChart = ({ data }: { data: { labels: string[], values: number[] } | null }) => {
-    if (!data || data.labels.length < 2) {
-        return <Text style={styles.noDataText}>Registe o peso em pelo menos duas sessões para ver o gráfico.</Text>;
+    if (!data || data.values.length === 0) {
+        return <Text style={styles.noDataText}>Registe o peso para ver o gráfico de evolução.</Text>;
     }
 
     const maxValue = Math.max(...data.values, 1);
@@ -21,8 +21,10 @@ const EvolutionChart = ({ data }: { data: { labels: string[], values: number[] }
         <View style={styles.chartBody}>
             {data.values.map((value, index) => (
                 <View key={index} style={styles.barWrapper}>
-                    <Text style={styles.barValue}>{value}kg</Text>
-                    <View style={[styles.bar, { height: `${(value / maxValue) * 100}%` }]} />
+                    <View style={styles.barItem}>
+                        <Text style={styles.barValue}>{value}kg</Text>
+                        <View style={[styles.bar, { height: `${(value / maxValue) * 100}%` }]} />
+                    </View>
                     <Text style={styles.barLabel}>{data.labels[index]}</Text>
                 </View>
             ))}
@@ -62,9 +64,9 @@ export default function ExerciseDetailScreen() {
                 entry.details.performance[exerciseId]
             )
             .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-            .slice(-5); // Limita o gráfico aos últimos 5 registos para uma melhor visualização
+            .slice(-5); // Limita o gráfico aos últimos 5 registos
 
-        if (exerciseHistory.length < 2) return null;
+        if (exerciseHistory.length === 0) return null;
 
         return {
             labels: exerciseHistory.map(entry => {
@@ -91,41 +93,42 @@ export default function ExerciseDetailScreen() {
     }
 
     return (
-        <ScrollView style={styles.container}>
-            <Stack.Screen options={{ title: exercise.name }} />
-            <View style={styles.header}>
-                 <Text style={styles.headerText}>Músculo: {exercise.muscle} </Text>
-                 <View style={styles.detailsRow}>
-                    <Text style={styles.headerText}>Série: {exercise.series} </Text>
-                    <Text style={styles.headerText}>Reps: {exercise.reps} </Text>
-                 </View>
-                 {exercise.obs ? <Text style={styles.headerText}>Obs: {exercise.obs}</Text> : null}
-            </View>
+        <SafeAreaView style={styles.container}>
+            <ScrollView>
+                <Stack.Screen options={{ title: exercise.name }} />
+                <View style={styles.header}>
+                     <Text style={styles.headerText}>Músculo: {exercise.muscle}</Text>
+                     <View style={styles.detailsRow}>
+                        <Text style={styles.headerText}>Série: {exercise.series}</Text>
+                        <Text style={styles.headerText}>Reps: {exercise.reps}</Text>
+                     </View>
+                     {exercise.obs ? <Text style={styles.headerText}>Obs: {exercise.obs}</Text> : null}
+                </View>
 
-            <View style={styles.sectionContainer}>
-                <Text style={styles.sectionTitle}>Vídeo Explicativo</Text>
-                <View style={styles.imageWrapper}>
-                    {exercise.gifUrl ? (
-                        <Image source={{ uri: exercise.gifUrl }} style={styles.gif} resizeMode="contain" />
-                    ) : (
-                        <Text style={styles.noDataText}>Nenhum GIF disponível</Text>
+                <View style={styles.sectionContainer}>
+                    <Text style={styles.sectionTitle}>Vídeo Explicativo</Text>
+                    <View style={styles.imageWrapper}>
+                        {exercise.gifUrl ? (
+                            <Image source={{ uri: exercise.gifUrl }} style={styles.gif} resizeMode="contain" />
+                        ) : (
+                            <Text style={styles.noDataText}>Nenhum GIF disponível</Text>
+                        )}
+                    </View>
+                </View>
+                
+                <View style={[styles.sectionContainer, { marginTop: 0 }]}>
+                    <Text style={styles.sectionTitle}>Evolução de Carga</Text>
+                    {isLoading ? <ActivityIndicator color={themeColor} /> : (
+                        <>
+                            <EvolutionChart data={chartData} />
+                            {personalRecord && (
+                                <Text style={styles.prText}>Recorde Pessoal (PR): {personalRecord} kg</Text>
+                            )}
+                        </>
                     )}
                 </View>
-            </View>
-            
-            {/* GRÁFICO DE EVOLUÇÃO AGORA EM BAIXO */}
-            <View style={[styles.sectionContainer, { marginTop: 0 }]}>
-                <Text style={styles.sectionTitle}>Evolução de Carga</Text>
-                {isLoading ? <ActivityIndicator color={themeColor} /> : (
-                    <>
-                        <EvolutionChart data={chartData} />
-                        {personalRecord && (
-                            <Text style={styles.prText}>Recorde Pessoal (PR): {personalRecord} kg</Text>
-                        )}
-                    </>
-                )}
-            </View>
-        </ScrollView>
+            </ScrollView>
+        </SafeAreaView>
     );
 };
 
@@ -164,18 +167,25 @@ const styles = StyleSheet.create({
     gif: { width: '100%', height: '100%' },
     noDataText: { color: 'gray', fontStyle: 'italic', textAlign: 'center', paddingVertical: 20 },
     prText: { marginTop: 20, fontSize: 16, fontWeight: 'bold', color: themeColor, textAlign: 'center' },
-    // Estilos para o novo gráfico
+    // Estilos para o gráfico
     chartBody: {
         flexDirection: 'row',
         justifyContent: 'space-around',
         alignItems: 'flex-end',
         height: 150,
         width: '100%',
+        // A linha foi removida daqui
     },
     barWrapper: {
         flex: 1,
         alignItems: 'center',
         marginHorizontal: 5,
+    },
+    barItem: {
+        flex: 1,
+        width: '100%',
+        alignItems: 'center',
+        justifyContent: 'flex-end',
     },
     barValue: {
         fontSize: 12,
