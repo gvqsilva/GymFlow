@@ -1,7 +1,7 @@
 // app/(tabs)/index.tsx
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, Pressable, StatusBar, ScrollView, Modal, FlatList } from 'react-native';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, Pressable, StatusBar, ScrollView, Modal, FlatList, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useIsFocused } from '@react-navigation/native';
 import { Link } from 'expo-router';
@@ -9,6 +9,9 @@ import * as Haptics from 'expo-haptics';
 import { scheduleNextReminder } from '../../lib/notificationService';
 import { useWorkouts } from '../../hooks/useWorkouts';
 import { Ionicons } from '@expo/vector-icons';
+import ViewShot from 'react-native-view-shot';
+import * as Sharing from 'expo-sharing';
+import ShareCard from '../../components/ShareCard';
 
 const themeColor = '#5a4fcf';
 
@@ -18,11 +21,10 @@ const getLocalDateString = (date = new Date()) => {
     const day = date.getDate().toString().padStart(2, '0');
     return `${year}-${month}-${day}`;
 };
-
 const getStartOfWeek = (date = new Date()) => {
     const d = new Date(date);
-    const day = d.getDay(); // Domingo = 0, Segunda = 1, ...
-    const diff = d.getDate() - day; // Subtrai os dias desde Domingo
+    const day = d.getDay();
+    const diff = d.getDate() - day;
     d.setHours(0, 0, 0, 0);
     return new Date(d.setDate(diff));
 };
@@ -30,29 +32,29 @@ const getStartOfWeek = (date = new Date()) => {
 const WeeklySummaryGraph = ({ data }: { data: { [key: string]: number } }) => {
     const activities = Object.entries(data);
     const nameMapping: { [key: string]: string } = {
-        'Musculação': 'Academia ',
-        'Futebol Society': 'Futebol ',
-        'Vólei de Quadra': 'Quadra ',
-        'Vólei de Praia': 'Praia ',
-        'Boxe': 'Boxe ',
+        'Musculação': 'Academia',
+        'Futebol Society': 'Futebol',
+        'Vôlei de Quadra': 'Quadra',
+        'Vôlei de Praia': 'Praia',
+        'Boxe': 'Boxe',
     };
     if (activities.length === 0) {
         return (
             <View style={styles.graphContainer}>
-                <Text style={styles.graphTitle}>Resumo da Semana </Text>
-                <Text style={styles.noActivityText}>Nenhuma atividade registada esta semana. </Text>
+                <Text style={styles.graphTitle}>Resumo da Semana</Text>
+                <Text style={styles.noActivityText}>Nenhuma atividade registada esta semana.</Text>
             </View>
         );
     }
     const maxCount = Math.max(...activities.map(([, count]) => count), 1);
     return (
         <View style={styles.graphContainer}>
-            <Text style={styles.graphTitle}>Resumo da Semana </Text>
+            <Text style={styles.graphTitle}>Resumo da Semana</Text>
             <View style={styles.barGraphContainer}>
                 {activities.map(([category, count]) => (
                     <View key={category} style={styles.barWrapper}>
                         <View style={styles.barItem}>
-                            <Text style={styles.barLabelCount}>{count}x </Text>
+                            <Text style={styles.barLabelCount}>{count}x</Text>
                             <View style={[styles.bar, { height: `${(count / maxCount) * 100}%` }]} />
                         </View>
                         <Text style={styles.barLabelCategory}>{nameMapping[category] || category} </Text>
@@ -74,6 +76,8 @@ export default function HomeScreen() {
     const [totalCaloriesToday, setTotalCaloriesToday] = useState(0);
     const [isDetailsModalVisible, setIsDetailsModalVisible] = useState(false);
     const [todayActivities, setTodayActivities] = useState<any[]>([]);
+
+    const viewShotRef = useRef<ViewShot>(null);
 
     const isFocused = useIsFocused();
 
@@ -99,7 +103,7 @@ export default function HomeScreen() {
 
             const workoutHistoryJSON = await AsyncStorage.getItem('workoutHistory');
             if (workoutHistoryJSON) {
-                const history: { date: string, category: string, details: { calories?: number, type?: string } }[] = JSON.parse(workoutHistoryJSON);
+                const history: { date: string, category: string, details: { calories?: number, type?: string, duration?: number } }[] = JSON.parse(workoutHistoryJSON);
                 
                 const startOfWeekString = getLocalDateString(getStartOfWeek());
                 const weeklyHistory = history.filter(entry => entry.date >= startOfWeekString);
@@ -139,11 +143,8 @@ export default function HomeScreen() {
         if (isFocused) {
             loadData();
             refreshWorkouts();
-            // CORREÇÃO: Adiciona uma verificação de segurança antes de chamar a função
             if (typeof scheduleNextReminder === 'function') {
                 scheduleNextReminder();
-            } else {
-                console.warn("A função scheduleNextReminder não foi encontrada. Verifique a importação e a localização do ficheiro.");
             }
         }
     }, [isFocused, loadData, refreshWorkouts]);
@@ -158,7 +159,6 @@ export default function HomeScreen() {
             } else {
                 await AsyncStorage.removeItem('creatineDate');
             }
-            // CORREÇÃO: Adiciona uma verificação de segurança antes de chamar a função
             if (typeof scheduleNextReminder === 'function') {
                 await scheduleNextReminder();
             }
@@ -183,8 +183,25 @@ export default function HomeScreen() {
             await AsyncStorage.setItem('wheyData', JSON.stringify({ count: newCount, date: getLocalDateString() }));
         } catch (e) { console.error("Failed to save whey count.", e); }
     };
+    
+    const handleShare = async () => {
+        if (viewShotRef.current?.capture) {
+            try {
+                const uri = await viewShotRef.current.capture();
+                if (!(await Sharing.isAvailableAsync())) {
+                    Alert.alert("Erro", "A partilha não está disponível neste dispositivo.");
+                    return;
+                }
+                await Sharing.shareAsync(uri);
+            } catch (error) {
+                console.error("Erro ao partilhar:", error);
+                Alert.alert("Erro", "Não foi possível partilhar a imagem.");
+            }
+        }
+    };
 
     const nextWorkoutName = isLoadingWorkouts ? 'A carregar...' : (workouts[nextWorkoutId]?.name || 'Treino');
+    const totalDurationToday = todayActivities.reduce((sum, entry) => sum + (entry.details?.duration || (entry.category === 'Musculação' ? 60 : 0)), 0);
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -193,7 +210,7 @@ export default function HomeScreen() {
                 <View style={styles.header}>
                     <View>
                         <Text style={styles.greetingSmall}>Olá,</Text>
-                        <Text style={styles.greetingLarge}>{userName}</Text>
+                        <Text style={styles.greetingLarge}>{userName} </Text>
                     </View>
                     <Text style={styles.workoutCount}>{`Acad. na semana: ${weeklyGymWorkouts}`} </Text>
                 </View>
@@ -205,7 +222,7 @@ export default function HomeScreen() {
                             <Text style={styles.cardDose}>Estimativa de hoje </Text>
                         </View>
                         <View style={styles.caloriesDisplay}>
-                            <Text style={styles.caloriesValue}>{totalCaloriesToday} </Text>
+                            <Text style={styles.caloriesValue}>{totalCaloriesToday}</Text>
                             <Text style={styles.caloriesUnit}>kcal </Text>
                         </View>
                     </Pressable>
@@ -245,7 +262,7 @@ export default function HomeScreen() {
                             asChild
                         >
                             <Pressable style={styles.button}>
-                                <Text style={styles.buttonText}>Abrir ficha</Text>
+                                <Text style={styles.buttonText}>Abrir ficha </Text>
                             </Pressable>
                         </Link>
                     </View>
@@ -260,9 +277,22 @@ export default function HomeScreen() {
                 visible={isDetailsModalVisible}
                 onRequestClose={() => setIsDetailsModalVisible(false)}
             >
+                {/* O CARTÃO DE PARTILHA ESTÁ AGORA AQUI, ESCONDIDO */}
+                <View style={{ position: 'absolute', top: -10000 }}>
+                    <ViewShot ref={viewShotRef} options={{ format: 'jpg', quality: 0.9 }}>
+                        <ShareCard 
+                            activities={todayActivities} 
+                            totalKcal={totalCaloriesToday}
+                            totalDuration={totalDurationToday}
+                            date={new Date()}
+                            workouts={workouts}
+                        />
+                    </ViewShot>
+                </View>
+
                 <Pressable style={styles.modalContainer} onPress={() => setIsDetailsModalVisible(false)}>
                     <Pressable style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>Detalhes do Gasto Calórico de Hoje</Text>
+                        <Text style={styles.modalTitle}>Detalhes do Gasto Calórico de Hoje </Text>
                         <FlatList
                             data={todayActivities}
                             keyExtractor={(item, index) => `${item.category}-${index}`}
@@ -274,16 +304,25 @@ export default function HomeScreen() {
                                 }
                                 return (
                                     <View style={styles.activityItem}>
-                                        <Text style={styles.activityName}>{activityDisplayName} </Text>
+                                        <Text style={styles.activityName}>
+                                            {activityDisplayName} </Text>
                                         <Text style={styles.activityCalories}>{item.details?.calories || 0} kcal</Text>
                                     </View>
                                 );
                             }}
                             ListEmptyComponent={<Text style={styles.noActivityTextModal}>Nenhuma atividade registada.</Text>}
                         />
-                        <Pressable style={styles.closeButton} onPress={() => setIsDetailsModalVisible(false)}>
-                            <Text style={styles.closeButtonText}>Fechar</Text>
-                        </Pressable>
+                        <View style={styles.modalFooter}>
+                            {todayActivities.length > 0 && (
+                                <Pressable style={styles.shareButton} onPress={handleShare}>
+                                    <Ionicons name="share-social-outline" size={20} color={themeColor} />
+                                    <Text style={styles.shareButtonText}>Compartilhar </Text>
+                                </Pressable>
+                            )}
+                            <Pressable style={styles.closeButton} onPress={() => setIsDetailsModalVisible(false)}>
+                                <Text style={styles.closeButtonText}>Fechar </Text>
+                            </Pressable>
+                        </View>
                     </Pressable>
                 </Pressable>
             </Modal>
@@ -372,7 +411,7 @@ const styles = StyleSheet.create({
     modalContent: {
         backgroundColor: 'white',
         padding: 22,
-        paddingBottom: 40,
+        paddingBottom: 20,
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
         minHeight: '40%',
@@ -406,11 +445,28 @@ const styles = StyleSheet.create({
         fontSize: 16,
         paddingVertical: 20,
     },
+    modalFooter: {
+        marginTop: 20,
+    },
+    shareButton: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#f0f2f5',
+        borderRadius: 10,
+        padding: 15,
+        marginBottom: 10,
+    },
+    shareButtonText: {
+        color: themeColor,
+        fontSize: 16,
+        fontWeight: 'bold',
+        marginLeft: 10,
+    },
     closeButton: {
         backgroundColor: themeColor,
         borderRadius: 10,
         padding: 15,
-        marginTop: 20,
         alignItems: 'center',
     },
     closeButtonText: {

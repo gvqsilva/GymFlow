@@ -97,21 +97,21 @@ export default function ExerciseDetailScreen() {
             <ScrollView>
                 <Stack.Screen options={{ title: exercise.name }} />
                 <View style={styles.header}>
-                     <Text style={styles.headerText}>Músculo: {exercise.muscle}</Text>
+                     <Text style={styles.headerText}>Músculo: {exercise.muscle} </Text>
                      <View style={styles.detailsRow}>
-                        <Text style={styles.headerText}>Série: {exercise.series}</Text>
-                        <Text style={styles.headerText}>Reps: {exercise.reps}</Text>
+                        <Text style={styles.headerText}>Série: {exercise.series} </Text>
+                        <Text style={styles.headerText}>Reps: {exercise.reps} </Text>
                      </View>
                      {exercise.obs ? <Text style={styles.headerText}>Obs: {exercise.obs}</Text> : null}
                 </View>
 
                 <View style={styles.sectionContainer}>
-                    <Text style={styles.sectionTitle}>Vídeo Explicativo</Text>
+                    <Text style={styles.sectionTitle}>Vídeo Explicativo </Text>
                     <View style={styles.imageWrapper}>
                         {exercise.gifUrl ? (
                             <Image source={{ uri: exercise.gifUrl }} style={styles.gif} resizeMode="contain" />
                         ) : (
-                            <Text style={styles.noDataText}>Nenhum GIF disponível</Text>
+                            <Text style={styles.noDataText}>Nenhum GIF disponível </Text>
                         )}
                     </View>
                 </View>
