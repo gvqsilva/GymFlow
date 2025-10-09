@@ -1,96 +1,102 @@
-# 🏋️‍♂️ GymFlow: O Diário de Atleta Completo
-
-## 🚀 Visão
-**De um Diário de Treino a um Parceiro de Performance**
-
-O **GymFlow** nasceu como um especialista em musculação, mas a sua próxima grande evolução é transformá-lo num verdadeiro **Diário de Atleta**.  
-Esta ferramenta foi desenhada para **compreender e registar toda a sua vida desportiva**, desde o ginásio ao campo de futebol, oferecendo **controlo total** para adaptar a sua rotina à medida que evolui.
-
-Essa transformação será alcançada através de **duas grandes funcionalidades interligadas**:
-
-- **Registo Multi-Desportivo**
-- **Gestão Dinâmica de Fichas**
+# 📱 Projeto: App GymFlow 
 
 ---
 
-## ⚡ Funcionalidades Principais
+## 📑 Sumário
 
-### 1️⃣ Registo Multi-Desportivo
-O aplicativo reconhece que a sua vida de atleta **vai além da musculação**.
-
-- **Hub de Atividades Centralizado**  
-  Uma nova aba **"Esportes"** permite registar rapidamente qualquer atividade do seu dia:  
-  *Musculação, Vôlei, Futebol, Boxe, etc.*
-
-- **Métricas Inteligentes**  
-  O registo adapta-se automaticamente ao desporto:  
-  - Para futebol, registe **duração** e **intensidade** de um jogo.  
-  - Para musculação, continue usando fichas **detalhadas de exercícios**.
-
-- **Visão Completa**  
-  Registe várias atividades no mesmo dia e visualize **um resumo semanal** no painel principal, ajudando a:
-  - **Gerir carga de treino**  
-  - **Evitar overtraining**
+1. [Visão Geral](#visão-geral)
+2. [Tecnologias Utilizadas](#tecnologias-utilizadas)
+3. [Funcionalidades Implementadas](#funcionalidades-implementadas)
+   - [Home](#31-home-tela-principal)
+   - [Esportes](#32-esportes-registo-multi-desportivo)
+   - [Histórico](#33-histórico-interativo)
+   - [Configurações](#34-configurações)
+4. [Roadmap](#roadmap)
 
 ---
 
-### 2️⃣ Gestão Dinâmica de Fichas
-Personalize os seus treinos **sem precisar tocar no código**.
+## 🧭 Visão Geral
 
-- **Centro de Controlo**  
-  Dentro da aba **"Configurações"**, uma nova secção **"Gerir Fichas de Musculação"** funciona como uma oficina para **criar e refinar seus treinos**.
+O **GymFlow** é uma aplicação móvel pessoal desenvolvida para **iOS e Android**, atuando como um **"Diário de Atleta Completo"**.  
+Seu objetivo é oferecer uma experiência centralizada de acompanhamento esportivo e nutricional, ideal para atletas que praticam múltiplas modalidades.
 
-- **Edição Completa e Intuitiva**  
-  Interface simples e moderna com **arrastar e soltar (drag & drop)** para:
-  - Adicionar exercícios
-  - Editar detalhes
-  - Apagar exercícios
-  - Reordenar fichas
+### 🎯 Objetivos Principais
+- Centralizar registos de treinos (diversas modalidades).  
+- Acompanhar suplementação diária.  
+- Visualizar progresso físico e de performance.  
+- Funcionar como parceiro inteligente de performance esportiva.
 
-- **Sincronização Automática**  
-  Alterações feitas nas configurações são **refletidas instantaneamente** no ecrã de treino.
+### 🧬 Evolução
+O projeto teve início como um simples diário de musculação e evoluiu para um **“nexo desportivo”**, abrangendo múltiplas modalidades e estatísticas de performance.
 
 ---
 
-## 🔗 A Sinergia Perfeita: O App em Ação
-A verdadeira força do GymFlow está na **integração destas funcionalidades**.  
+## 🛠️ Tecnologias Utilizadas
 
-Imagine o seguinte cenário:
+- **Framework:** React Native (Expo)  
+- **Linguagem:** TypeScript  
+- **Navegação:** Expo Router (file-based)  
+- **Armazenamento:** AsyncStorage (local)  
 
-> Você joga uma **partida intensa de futebol na terça-feira** e regista-a no aplicativo.  
-> O próximo treino de musculação, na quarta-feira, seria a **Ficha C (Pernas)**.  
->  
-> Sabendo que as suas pernas estão cansadas, você vai às configurações e:
-> - Diminui o volume/intensidade dos exercícios.
-> - Reordena a ficha para **começar com algo mais leve**.  
-> 
-> Resultado: **o aplicativo adapta-se à sua realidade**, tornando-se um **parceiro ativo e inteligente**, ajudando a **tomar melhores decisões** sobre treino e recuperação.
-
----
-
-## 🛠️ Tecnologias Futuras
-O GymFlow será expandido utilizando tecnologias modernas, como:
-- **React Native** para desenvolvimento mobile
-- **Async Storage** para armazenamento local
-- **Notificações Push** para lembretes de treino
-- **Integração com APIs esportivas** para estatísticas em tempo real
+### 📦 Bibliotecas e Componentes
+- `expo-haptics` — feedback tátil nativo  
+- `expo-notifications` — notificações locais e lembretes  
+- `react-native-calendars` — exibição e controle de calendário  
+- `react-native-draggable-flatlist` — ordenação dinâmica por drag-and-drop  
 
 ---
 
-## 📌 Roadmap
-- [ ] Implementar aba **Esportes** para registo multi-desportivo  
-- [ ] Criar sistema de **edição dinâmica de fichas**  
-- [ ] Adicionar **resumo semanal** no painel principal  
-- [ ] Sistema inteligente de **alerta para overtraining**  
-- [ ] Integração com **dispositivos wearables** (futuro)
+## ⚙️ Funcionalidades Implementadas
+
+### 3.1. 🏠 Home (Tela Principal)
+- Dashboard **diário/semanal**.  
+- **Saudação personalizada** conforme horário e nome do usuário.  
+- **Acompanhamento de Suplementos** (Creatina + Whey).  
+- **Gasto Calórico Diário** (com modal interativo).
+  -  **Opção de Compartilhar Resumo Diario** (Compartilhar seu desempenho diario)
+- **Atalho de Musculação Dinâmico** (sequência automática).  
+- **Resumo Semanal de Atividades** (gráfico de barras).
 
 ---
 
-## 🧑‍💻 Contribuindo
-Quer ajudar a construir o futuro do GymFlow?  
-Siga os passos:
+### 3.2. 🏋️ Esportes (Registo Multi-Desportivo)
+- Hub central de atividades.  
+- Lista de desportos: **Musculação, Vólei, Futebol, Boxe**.  
+- Gráfico de progressão de carga e destaque de **PR (Personal Record)**.  
+- Mini-calendário mensal de frequência.  
+- **Fluxos diferenciados**:
+  - *Academia*: fichas de musculação detalhadas.  
+  - *Outros esportes*: registo rápido (duração, intensidade, calorias).  
 
-1. Faça um fork do repositório
-2. Crie uma branch:  
-   ```bash
-   git checkout -b feature/nova-funcionalidade
+---
+
+### 3.3. 📅 Histórico (Interativo)
+- **Calendário Heatmap** para exibir intensidade de treinos por dia.  
+- **Resumo Diário** com lista de atividades e duração total.  
+
+---
+
+### 3.4. ⚙️ Configurações
+- **Perfil do Utilizador:** nome, peso, altura, idade e cálculo automático do IMC (com indicador colorido).  
+- **Gestão de Fichas de Treino:** criar, editar e apagar fichas com **drag-and-drop**.  
+- **Lembretes de Creatina:** notificações diárias e reforços automáticos.  
+- **Gestão de Dados:** opção para excluir atividades específicas.  
+
+---
+
+## 🗺️ Roadmap
+
+| Fase | Descrição | Status |
+|------|------------|--------|
+| 1 | Estruturação do projeto e navegação base | ✅ Concluída |
+| 2 | Implementação de dashboard e esportes | ✅ Concluída |
+| 3 | Sistema de notificações e lembretes | ✅ Concluída |
+| 4 | Otimização e testes finais | ✅ Concluída |
+| 5 | Publicação e documentação | ✅ Finalizado |
+
+---
+
+### 🧾 Licença
+Este projeto é de uso **educacional e pessoal**, não sendo destinado à distribuição comercial.
+
+---
