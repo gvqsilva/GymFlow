@@ -1,15 +1,14 @@
 // app/(tabs)/config.tsx
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, Pressable, Switch, Alert, ScrollView } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { View, Text, StyleSheet, SafeAreaView, Pressable, ScrollView } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
-import * as Notifications from 'expo-notifications';
-import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import { scheduleNextReminder } from '../../lib/notificationService';
+import * as Notifications from 'expo-notifications'; 
+// REMOVIDAS as importações de AsyncStorage, DateTimePicker e scheduleNextReminder
 
 const themeColor = '#5a4fcf';
 
+// O handler de notificações permanece, pois é uma configuração global do Expo
 Notifications.setNotificationHandler({
   handleNotification: async () => {
     return {
@@ -22,54 +21,8 @@ Notifications.setNotificationHandler({
 
 export default function SettingsScreen() {
     const router = useRouter();
-    const [isReminderEnabled, setIsReminderEnabled] = useState(false);
-    const [reminderTime, setReminderTime] = useState(new Date(new Date().setHours(8, 0, 0, 0)));
-    const [showTimePicker, setShowTimePicker] = useState(false);
 
-    const loadReminderSettings = useCallback(async () => {
-        try {
-            const settingsJSON = await AsyncStorage.getItem('reminderSettings');
-            if (settingsJSON) {
-                const { enabled, time } = JSON.parse(settingsJSON);
-                setIsReminderEnabled(enabled);
-                setReminderTime(new Date(time));
-            }
-        } catch (e) {
-            console.error("Failed to load reminder settings.", e);
-        }
-    }, []);
-
-    useEffect(() => {
-        loadReminderSettings();
-    }, [loadReminderSettings]);
-    
-    const handleSettingsChange = async (enabled: boolean, time: Date) => {
-        const newSettings = { enabled, time: time.toISOString() };
-        await AsyncStorage.setItem('reminderSettings', JSON.stringify(newSettings));
-        await scheduleNextReminder();
-        
-        if (enabled) {
-            Alert.alert("Sucesso!", `Lembrete atualizado.`);
-        } else {
-            await Notifications.cancelAllScheduledNotificationsAsync();
-            Alert.alert("Lembrete Desativado", "As notificações de creatina foram canceladas.");
-        }
-    };
-
-    const handleToggleReminder = (value: boolean) => {
-        setIsReminderEnabled(value);
-        handleSettingsChange(value, reminderTime);
-    };
-
-    const onChangeTime = (event: DateTimePickerEvent, selectedDate?: Date) => {
-        setShowTimePicker(false);
-        if (event.type === 'set' && selectedDate) {
-            setReminderTime(selectedDate);
-            handleSettingsChange(isReminderEnabled, selectedDate);
-        }
-    };
-
-    const formatTime = (date: Date) => date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    // REMOVIDA: Toda a lógica de estado e funções relacionadas ao lembrete de creatina.
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -83,22 +36,13 @@ export default function SettingsScreen() {
                     </View>
                 </Pressable>
 
-                <View style={styles.card}>
+                {/* Este card leva ao Gerir Suplementos, onde agora está o lembrete */}
+                <Pressable style={styles.linkCard} onPress={() => router.push('/gerir-suplementos')}>
                     <View>
-                        <Text style={styles.cardTitle}>Lembrete de Creatina</Text>
-                        <Pressable onPress={() => setShowTimePicker(true)}>
-                            <Text style={styles.reminderTimeText}>
-                                Todos os dias às {formatTime(reminderTime)}
-                            </Text>
-                        </Pressable>
+                        <Text style={styles.cardTitle}>Gerir Suplementos</Text>
+                        <Text style={styles.cardSubtitle}>Adicione, edite ou apague suplementos</Text>
                     </View>
-                    <Switch
-                        trackColor={{ false: "#767577", true: "#81b0ff" }}
-                        thumbColor={isReminderEnabled ? themeColor : "#f4f3f4"}
-                        onValueChange={handleToggleReminder}
-                        value={isReminderEnabled}
-                    />
-                </View>
+                </Pressable>
 
                 <Pressable style={styles.linkCard} onPress={() => router.push('/gerir-fichas')}>
                     <View>
@@ -113,13 +57,6 @@ export default function SettingsScreen() {
                         <Text style={styles.cardSubtitle}>Adicione ou remova modalidades</Text>
                     </View>
                 </Pressable>
-
-                <Pressable style={styles.linkCard} onPress={() => router.push('/gerir-suplementos')}>
-                    <View>
-                        <Text style={styles.cardTitle}>Gerir Suplementos</Text>
-                        <Text style={styles.cardSubtitle}>Adicione, edite ou apague suplementos</Text>
-                    </View>
-                </Pressable>
                 
                 <Pressable style={styles.linkCard} onPress={() => router.push('/gestao-dados')}>
                     <View>
@@ -128,15 +65,6 @@ export default function SettingsScreen() {
                     </View>
                 </Pressable>
                 
-                {showTimePicker && (
-                    <DateTimePicker
-                        value={reminderTime}
-                        mode="time"
-                        is24Hour={true}
-                        display="default"
-                        onChange={onChangeTime}
-                    />
-                )}
             </ScrollView>
         </SafeAreaView>
     );
@@ -145,20 +73,7 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: '#f0f2f5' },
     container: { padding: 20 },
-    card: { 
-        backgroundColor: 'white', 
-        borderRadius: 20, 
-        padding: 20, 
-        marginBottom: 20, 
-        shadowColor: '#000', 
-        shadowOffset: { width: 0, height: 2 }, 
-        shadowOpacity: 0.1, 
-        shadowRadius: 4, 
-        elevation: 3,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-    },
+    // O estilo 'card' foi mantido para consistência, mas o card do lembrete foi removido.
     linkCard: {
         backgroundColor: 'white', 
         borderRadius: 20, 
@@ -172,5 +87,5 @@ const styles = StyleSheet.create({
     },
     cardTitle: { fontSize: 20, fontWeight: 'bold', color: '#333' },
     cardSubtitle: { fontSize: 14, color: 'gray', marginTop: 5 },
-    reminderTimeText: { fontSize: 16, color: themeColor, marginTop: 5, fontWeight: 'bold' },
+    // REMOVIDO: O estilo reminderTimeText
 });
