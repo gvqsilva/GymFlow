@@ -12,8 +12,12 @@ import { Ionicons } from '@expo/vector-icons';
 import ViewShot from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import ShareCard from '../../components/ShareCard';
+import Toast from 'react-native-toast-message'; // 1. IMPORTE O TOAST
 
 const themeColor = '#5a4fcf';
+
+const CREATINE_HISTORY_KEY = 'creatineHistory';
+const WHEY_HISTORY_KEY = 'wheyHistory';
 
 const getLocalDateString = (date = new Date()) => {
     const year = date.getFullYear();
@@ -57,7 +61,7 @@ const WeeklySummaryGraph = ({ data }: { data: { [key: string]: number } }) => {
                             <Text style={styles.barLabelCount}>{count}x</Text>
                             <View style={[styles.bar, { height: `${(count / maxCount) * 100}%` }]} />
                         </View>
-                        <Text style={styles.barLabelCategory}>{nameMapping[category] || category} </Text>
+                        <Text style={styles.barLabelCategory}>{nameMapping[category] || category}</Text>
                     </View>
                 ))}
             </View>
@@ -82,6 +86,8 @@ export default function HomeScreen() {
     const isFocused = useIsFocused();
 
     const loadData = useCallback(async () => {
+        // ... (esta função não precisa de alterações)
+        const today = getLocalDateString();
         try {
             const profileJSON = await AsyncStorage.getItem('userProfile');
             if (profileJSON) {
@@ -89,51 +95,39 @@ export default function HomeScreen() {
                 setUserName(name || 'Utilizador');
             }
 
-            const today = getLocalDateString();
-            const creatineDate = await AsyncStorage.getItem('creatineDate');
-            setCreatineTaken(creatineDate === today);
+            const creatineHistoryJSON = await AsyncStorage.getItem(CREATINE_HISTORY_KEY);
+            const creatineHistory = creatineHistoryJSON ? JSON.parse(creatineHistoryJSON) : {};
+            setCreatineTaken(!!creatineHistory[today]);
 
-            const wheyDataJSON = await AsyncStorage.getItem('wheyData');
-            if (wheyDataJSON) {
-                const { count, date } = JSON.parse(wheyDataJSON);
-                setWheyCount(date === today ? count : 0);
-            } else {
-                setWheyCount(0);
-            }
+            const wheyHistoryJSON = await AsyncStorage.getItem(WHEY_HISTORY_KEY);
+            const wheyHistory = wheyHistoryJSON ? JSON.parse(wheyHistoryJSON) : {};
+            setWheyCount(wheyHistory[today] || 0);
 
             const workoutHistoryJSON = await AsyncStorage.getItem('workoutHistory');
             if (workoutHistoryJSON) {
                 const history: { date: string, category: string, details: { calories?: number, type?: string, duration?: number } }[] = JSON.parse(workoutHistoryJSON);
-                
                 const startOfWeekString = getLocalDateString(getStartOfWeek());
                 const weeklyHistory = history.filter(entry => entry.date >= startOfWeekString);
-                
                 const gymWorkoutsThisWeek = weeklyHistory.filter(entry => entry.category === 'Musculação');
                 setWeeklyGymWorkouts(gymWorkoutsThisWeek.length);
-                
                 const summary = weeklyHistory.reduce((acc, entry) => {
                     const category = entry.category || 'Outro';
                     acc[category] = (acc[category] || 0) + 1;
                     return acc;
                 }, {} as { [key: string]: number });
                 setWeeklySummary(summary);
-
                 const activitiesToday = history.filter(entry => entry.date === today);
                 setTodayActivities(activitiesToday);
-
                 const totalKcal = activitiesToday.reduce((sum, entry) => sum + (entry.details?.calories || 0), 0);
                 setTotalCaloriesToday(totalKcal);
-
             } else {
                 setWeeklyGymWorkouts(0);
                 setWeeklySummary({});
                 setTotalCaloriesToday(0);
                 setTodayActivities([]);
             }
-
             const savedNextWorkoutId = await AsyncStorage.getItem('nextWorkoutId');
             setNextWorkoutId(savedNextWorkoutId || 'A');
-
         } catch (e) {
             console.error("Failed to load data.", e);
         }
@@ -149,40 +143,66 @@ export default function HomeScreen() {
         }
     }, [isFocused, loadData, refreshWorkouts]);
 
+    // 2. ALTERE A FUNÇÃO handleCreatinePress
     const handleCreatinePress = async () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        const today = getLocalDateString();
         const newStatus = !creatineTaken;
         setCreatineTaken(newStatus);
+        
         try {
+            const historyJSON = await AsyncStorage.getItem(CREATINE_HISTORY_KEY);
+            const history = historyJSON ? JSON.parse(historyJSON) : {};
+
             if (newStatus) {
-                await AsyncStorage.setItem('creatineDate', getLocalDateString());
+                history[today] = true;
+                Toast.show({
+                    type: 'success',
+                    text1: 'Creatina registada!',
+                    text2: 'Bom trabalho, continue com a consistência.'
+                });
             } else {
-                await AsyncStorage.removeItem('creatineDate');
+                delete history[today];
+                Toast.show({
+                    type: 'info',
+                    text1: 'Registo de creatina removido.'
+                });
             }
+            
+            await AsyncStorage.setItem(CREATINE_HISTORY_KEY, JSON.stringify(history));
+            
             if (typeof scheduleNextReminder === 'function') {
                 await scheduleNextReminder();
             }
-        } catch (e) { console.error("Failed to save creatine status.", e); }
+        } catch (e) { 
+            console.error("Failed to save creatine history.", e); 
+            Toast.show({
+                type: 'error',
+                text1: 'Erro',
+                text2: 'Não foi possível guardar o registo.'
+            });
+        }
     };
 
-    const handleWheyIncrement = async () => {
+    const updateWheyCount = async (newCount: number) => {
+        if (newCount < 0) return;
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        const newCount = wheyCount + 1;
         setWheyCount(newCount);
+        const today = getLocalDateString();
         try {
-            await AsyncStorage.setItem('wheyData', JSON.stringify({ count: newCount, date: getLocalDateString() }));
-        } catch (e) { console.error("Failed to save whey count.", e); }
+            const historyJSON = await AsyncStorage.getItem(WHEY_HISTORY_KEY);
+            const history = historyJSON ? JSON.parse(historyJSON) : {};
+            if (newCount > 0) {
+                history[today] = newCount;
+            } else {
+                delete history[today];
+            }
+            await AsyncStorage.setItem(WHEY_HISTORY_KEY, JSON.stringify(history));
+        } catch (e) { console.error("Failed to save whey history.", e); }
     };
 
-    const handleWheyDecrement = async () => {
-        if (wheyCount <= 0) return;
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        const newCount = wheyCount - 1;
-        setWheyCount(newCount);
-        try {
-            await AsyncStorage.setItem('wheyData', JSON.stringify({ count: newCount, date: getLocalDateString() }));
-        } catch (e) { console.error("Failed to save whey count.", e); }
-    };
+    const handleWheyIncrement = () => updateWheyCount(wheyCount + 1);
+    const handleWheyDecrement = () => updateWheyCount(wheyCount - 1);
     
     const handleShare = async () => {
         if (viewShotRef.current?.capture) {
@@ -210,20 +230,20 @@ export default function HomeScreen() {
                 <View style={styles.header}>
                     <View>
                         <Text style={styles.greetingSmall}>Olá,</Text>
-                        <Text style={styles.greetingLarge}>{userName} </Text>
+                        <Text style={styles.greetingLarge}>{userName}</Text>
                     </View>
-                    <Text style={styles.workoutCount}>{`Acad. na semana: ${weeklyGymWorkouts}`} </Text>
+                    <Text style={styles.workoutCount}>{`Acad. na semana: ${weeklyGymWorkouts}`}</Text>
                 </View>
 
                 <View style={styles.content}>
                     <Pressable style={styles.card} onPress={() => setIsDetailsModalVisible(true)}>
                         <View>
-                            <Text style={styles.cardTitle}>Gasto Calórico </Text>
-                            <Text style={styles.cardDose}>Estimativa de hoje </Text>
+                            <Text style={styles.cardTitle}>Gasto Calórico</Text>
+                            <Text style={styles.cardDose}>Estimativa de hoje</Text>
                         </View>
                         <View style={styles.caloriesDisplay}>
                             <Text style={styles.caloriesValue}>{totalCaloriesToday}</Text>
-                            <Text style={styles.caloriesUnit}>kcal </Text>
+                            <Text style={styles.caloriesUnit}>kcal</Text>
                         </View>
                     </Pressable>
 
@@ -239,7 +259,7 @@ export default function HomeScreen() {
                     <View style={styles.card}>
                         <View>
                             <Text style={styles.cardTitle}>Whey</Text>
-                            <Text style={styles.cardDose}>Dose: 30g </Text>
+                            <Text style={styles.cardDose}>Dose: 30g</Text>
                         </View>
                         <View style={styles.wheyCounter}>
                             <Pressable onPress={handleWheyDecrement} style={styles.wheyButton}>
@@ -262,7 +282,7 @@ export default function HomeScreen() {
                             asChild
                         >
                             <Pressable style={styles.button}>
-                                <Text style={styles.buttonText}>Abrir ficha </Text>
+                                <Text style={styles.buttonText}>Abrir ficha</Text>
                             </Pressable>
                         </Link>
                     </View>
@@ -277,7 +297,6 @@ export default function HomeScreen() {
                 visible={isDetailsModalVisible}
                 onRequestClose={() => setIsDetailsModalVisible(false)}
             >
-                {/* O CARTÃO DE PARTILHA ESTÁ AGORA AQUI, ESCONDIDO */}
                 <View style={{ position: 'absolute', top: -10000 }}>
                     <ViewShot ref={viewShotRef} options={{ format: 'jpg', quality: 0.9 }}>
                         <ShareCard 
@@ -292,7 +311,7 @@ export default function HomeScreen() {
 
                 <Pressable style={styles.modalContainer} onPress={() => setIsDetailsModalVisible(false)}>
                     <Pressable style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>Detalhes do Gasto Calórico de Hoje </Text>
+                        <Text style={styles.modalTitle}>Detalhes do Gasto Calórico de Hoje</Text>
                         <FlatList
                             data={todayActivities}
                             keyExtractor={(item, index) => `${item.category}-${index}`}
@@ -305,7 +324,8 @@ export default function HomeScreen() {
                                 return (
                                     <View style={styles.activityItem}>
                                         <Text style={styles.activityName}>
-                                            {activityDisplayName} </Text>
+                                            {activityDisplayName}
+                                        </Text>
                                         <Text style={styles.activityCalories}>{item.details?.calories || 0} kcal</Text>
                                     </View>
                                 );
@@ -316,11 +336,11 @@ export default function HomeScreen() {
                             {todayActivities.length > 0 && (
                                 <Pressable style={styles.shareButton} onPress={handleShare}>
                                     <Ionicons name="share-social-outline" size={20} color={themeColor} />
-                                    <Text style={styles.shareButtonText}>Compartilhar </Text>
+                                    <Text style={styles.shareButtonText}>Compartilhar</Text>
                                 </Pressable>
                             )}
                             <Pressable style={styles.closeButton} onPress={() => setIsDetailsModalVisible(false)}>
-                                <Text style={styles.closeButtonText}>Fechar </Text>
+                                <Text style={styles.closeButtonText}>Fechar</Text>
                             </Pressable>
                         </View>
                     </Pressable>
@@ -350,129 +370,26 @@ const styles = StyleSheet.create({
     buttonText: { color: 'white', fontWeight: 'bold' },
     graphContainer: { backgroundColor: 'white', borderRadius: 20, padding: 20, elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
     graphTitle: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 20, textAlign: 'center' },
-    noActivityText: {
-        textAlign: 'center',
-        color: 'gray',
-        fontSize: 16,
-        paddingVertical: 40,
-    },
-    barGraphContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        alignItems: 'flex-end',
-        height: 150,
-        marginTop: 10,
-    },
-    barWrapper: {
-        alignItems: 'center',
-        flex: 1,
-        marginHorizontal: 5,
-    },
-    barItem: {
-        flex: 1,
-        width: '100%',
-        alignItems: 'center',
-        justifyContent: 'flex-end',
-    },
-    bar: {
-        width: 35,
-        backgroundColor: themeColor,
-        borderRadius: 5,
-    },
-    barLabelCount: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: '#333',
-        marginBottom: 5,
-    },
-    barLabelCategory: {
-        marginTop: 8,
-        fontSize: 12,
-        color: 'gray',
-        textAlign: 'center',
-    },
-    caloriesDisplay: {
-        alignItems: 'flex-end',
-    },
-    caloriesValue: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        color: themeColor,
-    },
-    caloriesUnit: {
-        fontSize: 14,
-        color: 'gray',
-    },
-    modalContainer: {
-        flex: 1,
-        justifyContent: 'flex-end',
-        backgroundColor: 'rgba(0,0,0,0.5)',
-    },
-    modalContent: {
-        backgroundColor: 'white',
-        padding: 22,
-        paddingBottom: 20,
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        minHeight: '40%',
-        maxHeight: '60%',
-    },
-    modalTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        marginBottom: 20,
-        textAlign: 'center',
-    },
-    activityItem: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        paddingVertical: 15,
-        borderBottomWidth: 1,
-        borderBottomColor: '#eee',
-    },
-    activityName: {
-        fontSize: 16,
-        color: '#333',
-    },
-    activityCalories: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: themeColor,
-    },
-    noActivityTextModal: {
-        textAlign: 'center',
-        color: 'gray',
-        fontSize: 16,
-        paddingVertical: 20,
-    },
-    modalFooter: {
-        marginTop: 20,
-    },
-    shareButton: {
-        flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: '#f0f2f5',
-        borderRadius: 10,
-        padding: 15,
-        marginBottom: 10,
-    },
-    shareButtonText: {
-        color: themeColor,
-        fontSize: 16,
-        fontWeight: 'bold',
-        marginLeft: 10,
-    },
-    closeButton: {
-        backgroundColor: themeColor,
-        borderRadius: 10,
-        padding: 15,
-        alignItems: 'center',
-    },
-    closeButtonText: {
-        color: 'white',
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
+    noActivityText: { textAlign: 'center', color: 'gray', fontSize: 16, paddingVertical: 40, },
+    barGraphContainer: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'flex-end', height: 150, marginTop: 10, },
+    barWrapper: { alignItems: 'center', flex: 1, marginHorizontal: 5, },
+    barItem: { flex: 1, width: '100%', alignItems: 'center', justifyContent: 'flex-end', },
+    bar: { width: 35, backgroundColor: themeColor, borderRadius: 5, },
+    barLabelCount: { fontSize: 14, fontWeight: 'bold', color: '#333', marginBottom: 5, },
+    barLabelCategory: { marginTop: 8, fontSize: 12, color: 'gray', textAlign: 'center', },
+    caloriesDisplay: { alignItems: 'flex-end', },
+    caloriesValue: { fontSize: 28, fontWeight: 'bold', color: themeColor, },
+    caloriesUnit: { fontSize: 14, color: 'gray', },
+    modalContainer: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)', },
+    modalContent: { backgroundColor: 'white', padding: 22, paddingBottom: 20, borderTopLeftRadius: 20, borderTopRightRadius: 20, minHeight: '40%', maxHeight: '60%', },
+    modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 20, textAlign: 'center', },
+    activityItem: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#eee', },
+    activityName: { fontSize: 16, color: '#333', },
+    activityCalories: { fontSize: 16, fontWeight: 'bold', color: themeColor, },
+    noActivityTextModal: { textAlign: 'center', color: 'gray', fontSize: 16, paddingVertical: 20, },
+    modalFooter: { marginTop: 20, },
+    shareButton: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', backgroundColor: '#f0f2f5', borderRadius: 10, padding: 15, marginBottom: 10, },
+    shareButtonText: { color: themeColor, fontSize: 16, fontWeight: 'bold', marginLeft: 10, },
+    closeButton: { backgroundColor: themeColor, borderRadius: 10, padding: 15, alignItems: 'center', },
+    closeButtonText: { color: 'white', fontSize: 16, fontWeight: 'bold', },
 });
-

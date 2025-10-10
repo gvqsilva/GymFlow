@@ -4,12 +4,12 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, Pressable, Alert, ScrollView } from 'react-native';
 import { useLocalSearchParams, Stack, useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { MET_DATA } from '../constants/metData'; // Importa a nossa base de dados de METs
+import { MET_DATA } from '../constants/metData';
+import Toast from 'react-native-toast-message'; // 1. IMPORTE O TOAST AQUI
 
 const themeColor = '#5a4fcf';
 const PROFILE_KEY = 'userProfile';
 
-// Helper para obter a data local no formato YYYY-MM-DD
 const getLocalDateString = (date = new Date()) => {
     const year = date.getFullYear();
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
@@ -18,7 +18,7 @@ const getLocalDateString = (date = new Date()) => {
 };
 
 export default function LogSportScreen() {
-    const { esporte } = useLocalSearchParams<{ esporte: string }>();
+    const { esporte, date: dateParam } = useLocalSearchParams<{ esporte: string, date?: string }>();
     const router = useRouter();
 
     const [duration, setDuration] = useState('');
@@ -27,7 +27,6 @@ export default function LogSportScreen() {
     const [userWeight, setUserWeight] = useState(0);
     const [estimatedCalories, setEstimatedCalories] = useState(0);
 
-    // Carrega o peso do utilizador quando o ecrã fica em foco
     useFocusEffect(
         React.useCallback(() => {
             const loadProfile = async () => {
@@ -41,14 +40,12 @@ export default function LogSportScreen() {
         }, [])
     );
 
-    // Calcula as calorias sempre que a duração, intensidade ou peso mudam
     useEffect(() => {
         if (duration && intensity && userWeight > 0 && esporte) {
             const durationNum = parseInt(duration, 10);
             const metValue = MET_DATA[esporte]?.[intensity] || 0;
 
             if (durationNum > 0 && metValue > 0) {
-                // Fórmula: (MET * Peso em kg * 3.5) / 200 * Duração em minutos
                 const calories = (metValue * userWeight * 3.5) / 200 * durationNum;
                 setEstimatedCalories(Math.round(calories));
             } else {
@@ -61,19 +58,25 @@ export default function LogSportScreen() {
 
     const handleSaveActivity = async () => {
         if (!duration || !intensity) {
-            Alert.alert("Campos Obrigatórios", "Por favor, preencha a duração e a intensidade.");
+            // 2. SUBSTITUA O ALERT DE ERRO
+            Toast.show({
+                type: 'error',
+                text1: 'Campos Obrigatórios',
+                text2: 'Por favor, preencha a duração e a intensidade.'
+            });
             return;
         }
 
         try {
             const newActivity = {
-                date: getLocalDateString(),
+                id: `activity_${Date.now()}_${Math.random()}`,
+                date: dateParam || getLocalDateString(),
                 category: esporte,
                 details: {
                     duration: parseInt(duration, 10),
                     intensity,
                     notes,
-                    calories: estimatedCalories, // Guarda as calorias calculadas
+                    calories: estimatedCalories,
                 }
             };
 
@@ -82,11 +85,21 @@ export default function LogSportScreen() {
             history.push(newActivity);
             await AsyncStorage.setItem('workoutHistory', JSON.stringify(history));
 
-            Alert.alert("Sucesso!", `${esporte} registado com sucesso.`);
+            // 3. SUBSTITUA O ALERT DE SUCESSO
+            Toast.show({
+                type: 'success',
+                text1: 'Sucesso!',
+                text2: `${esporte} registado com sucesso.`
+            });
             router.back();
 
         } catch (e) {
-            Alert.alert("Erro", "Não foi possível registar a atividade.");
+            // 4. SUBSTITUA O ALERT DE ERRO NO CATCH
+            Toast.show({
+                type: 'error',
+                text1: 'Erro',
+                text2: 'Não foi possível registar a atividade.'
+            });
             console.error("Failed to save activity", e);
         }
     };
@@ -96,7 +109,7 @@ export default function LogSportScreen() {
             <Stack.Screen options={{ title: esporte }} />
             
             <View style={styles.card}>
-                <Text style={styles.label}>Duração (minutos) </Text>
+                <Text style={styles.label}>Duração (minutos)</Text>
                 <TextInput
                     style={styles.input}
                     keyboardType="number-pad"
@@ -105,9 +118,9 @@ export default function LogSportScreen() {
                     placeholder="Ex: 90"
                 />
 
-                <Text style={styles.label}>Intensidade </Text>
+                <Text style={styles.label}>Intensidade</Text>
                 <View style={styles.intensityContainer}>
-                    {['Leve', 'Moderada' , 'Alta' ].map((level) => (
+                    {['Leve', 'Moderada', 'Alta'].map((level) => (
                         <Pressable 
                             key={level}
                             style={[
@@ -124,7 +137,6 @@ export default function LogSportScreen() {
                     ))}
                 </View>
 
-                {/* NOVO CAMPO de estimativa de calorias */}
                 {estimatedCalories > 0 && (
                     <View style={styles.caloriesContainer}>
                         <Text style={styles.caloriesLabel}>Gasto Calórico Estimado: </Text>
@@ -132,7 +144,7 @@ export default function LogSportScreen() {
                     </View>
                 )}
 
-                <Text style={styles.label}>Notas (opcional)</Text>
+                <Text style={styles.label}>Notas (opcional) </Text>
                 <TextInput
                     style={[styles.input, styles.textArea]}
                     value={notes}
@@ -162,7 +174,6 @@ const styles = StyleSheet.create({
     intensityTextSelected: { color: 'white', fontWeight: 'bold' },
     saveButton: { backgroundColor: themeColor, padding: 20, borderRadius: 15, alignItems: 'center' },
     saveButtonText: { color: 'white', fontSize: 18, fontWeight: 'bold' },
-    // Novos estilos para o campo de calorias
     caloriesContainer: {
         alignItems: 'center',
         backgroundColor: '#f0f2f5',
@@ -181,4 +192,3 @@ const styles = StyleSheet.create({
         marginTop: 5,
     },
 });
-

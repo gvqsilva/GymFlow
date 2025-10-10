@@ -7,6 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useWorkouts } from '../../hooks/useWorkouts';
 import * as Haptics from 'expo-haptics';
 import { MET_DATA } from '../../constants/metData';
+import Toast from 'react-native-toast-message'; // Importação do Toast
 
 const themeColor = '#5a4fcf';
 const PROFILE_KEY = 'userProfile';
@@ -19,7 +20,7 @@ const getLocalDateString = (date = new Date()) => {
 };
 
 export default function WorkoutDetailScreen() {
-    const { id, title } = useLocalSearchParams<{ id: string, title?: string }>();
+    const { id, title, date: dateParam } = useLocalSearchParams<{ id: string, title?: string, date?: string }>();
     const { workouts, refreshWorkouts } = useWorkouts();
     const [userWeight, setUserWeight] = useState(0);
     const [performance, setPerformance] = useState<{ [key: string]: string }>({});
@@ -46,7 +47,7 @@ export default function WorkoutDetailScreen() {
 
     const handleLogWorkout = async () => {
         if (!id || !workout) {
-            Alert.alert("Erro", "Não foi possível identificar o treino.");
+            Toast.show({ type: 'error', text1: 'Erro', text2: 'Não foi possível identificar o treino.' });
             return;
         }
 
@@ -64,10 +65,10 @@ export default function WorkoutDetailScreen() {
         });
 
         try {
-            const today = getLocalDateString();
+            const logDate = dateParam || getLocalDateString();
             const workoutEntry = { 
                 id: `activity_${Date.now()}_${Math.random()}`,
-                date: today, 
+                date: logDate, 
                 category: 'Musculação', 
                 details: { 
                     type: id,
@@ -79,8 +80,8 @@ export default function WorkoutDetailScreen() {
             const historyJSON = await AsyncStorage.getItem('workoutHistory');
             let history: any[] = historyJSON ? JSON.parse(historyJSON) : [];
 
-            const todayMusculacaoLogIndex = history.findIndex(
-                (entry: { date: string, category: string }) => entry.date === today && entry.category === 'Musculação'
+            const musculacaoLogIndex = history.findIndex(
+                (entry: { date: string, category: string }) => entry.date === logDate && entry.category === 'Musculação'
             );
 
             const saveWorkout = async (isUpdate: boolean) => {
@@ -89,11 +90,13 @@ export default function WorkoutDetailScreen() {
                 const nextIndex = (currentIndex + 1) % workoutIds.length;
                 const nextWorkoutId = workoutIds[nextIndex];
 
-                await AsyncStorage.setItem('nextWorkoutId', nextWorkoutId);
+                if (!dateParam) {
+                    await AsyncStorage.setItem('nextWorkoutId', nextWorkoutId);
+                }
 
                 if (isUpdate) {
-                    workoutEntry.id = history[todayMusculacaoLogIndex].id;
-                    history[todayMusculacaoLogIndex] = workoutEntry;
+                    workoutEntry.id = history[musculacaoLogIndex].id;
+                    history[musculacaoLogIndex] = workoutEntry;
                 } else {
                     history.push(workoutEntry);
                 }
@@ -102,20 +105,29 @@ export default function WorkoutDetailScreen() {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
 
                 const messageAction = isUpdate ? "atualizado para" : "contabilizado como";
-                Alert.alert("Sucesso!", `Treino de hoje ${messageAction} ${workout.name}.`);
+                
+                Toast.show({
+                  type: 'success',
+                  text1: 'Sucesso!',
+                  text2: `Treino ${messageAction} ${workout.name}.`
+                });
             };
 
-            if (todayMusculacaoLogIndex === -1) {
+            if (musculacaoLogIndex === -1) {
                 await saveWorkout(false);
             } else {
-                const loggedWorkout = history[todayMusculacaoLogIndex];
+                const loggedWorkout = history[musculacaoLogIndex];
                 if (loggedWorkout.details.type === id && Object.keys(performanceData).length === 0) {
-                     Alert.alert("Aviso", `O treino de musculação ${workout.name} já foi contabilizado hoje.`);
+                     Toast.show({
+                         type: 'info',
+                         text1: 'Aviso',
+                         text2: `O treino ${workout.name} já foi contabilizado para este dia.`
+                     });
                      return;
                 }
                 Alert.alert(
                     "Substituir Registo?",
-                    `Você já contabilizou um treino de musculação hoje. Deseja substituí-lo por este?`,
+                    `Você já contabilizou um treino de musculação neste dia. Deseja substituí-lo por este?`,
                     [
                         { text: "Cancelar", style: "cancel" },
                         { text: "Sim, Substituir", style: "default", onPress: () => saveWorkout(true) }
@@ -124,7 +136,11 @@ export default function WorkoutDetailScreen() {
             }
         } catch (e) {
             console.error("Failed to log workout.", e);
-            Alert.alert("Erro de Dados", "Ocorreu um erro ao ler o seu histórico.");
+            Toast.show({
+                type: 'error',
+                text1: 'Erro de Dados',
+                text2: 'Ocorreu um erro ao ler o seu histórico.'
+            });
         }
     };
 
@@ -149,8 +165,7 @@ export default function WorkoutDetailScreen() {
                             <Pressable style={styles.mainInfo}>
                                 <Text style={styles.exerciseName}>{item.name} </Text>
                                 <Text style={styles.muscleTag}>{item.muscle} </Text>
-                                {/* OBSERVAÇÕES ADICIONADAS DE VOLTA AQUI */}
-                                {item.obs ? <Text style={styles.obsText}>Obs: {item.obs}</Text> : null}
+                                {item.obs ? <Text style={styles.obsText}>Obs: {item.obs} </Text> : null}
                                 <View style={styles.seriesRepsContainer}>
                                     <Text style={styles.seriesRepsText}>Série: {item.series} </Text>
                                     <Text style={styles.seriesRepsText}>Reps: {item.reps} </Text>
@@ -166,13 +181,13 @@ export default function WorkoutDetailScreen() {
                                 value={performance[item.id] || ''}
                                 onChangeText={(text) => handleWeightChange(item.id, text)}
                             />
-                            <Text style={styles.unitText}>kg </Text>
+                            <Text style={styles.unitText}>kg</Text>
                         </View>
                     </View>
                 )}
                 ListFooterComponent={
                     <Pressable style={styles.logButton} onPress={handleLogWorkout}>
-                        <Text style={styles.logButtonText}>Contabilizar Treino </Text>
+                        <Text style={styles.logButtonText}>Contabilizar Treino</Text>
                     </Pressable>
                 }
                 ListFooterComponentStyle={{ paddingBottom: 30 }}
@@ -187,66 +202,15 @@ const styles = StyleSheet.create({
     headerText: { fontSize: 16, color: 'gray', fontWeight: '500'},
     logButton: { backgroundColor: themeColor, marginHorizontal: 15, marginTop: 20, padding: 15, borderRadius: 15, alignItems: 'center' },
     logButtonText: { color: 'white', fontSize: 18, fontWeight: 'bold' },
-    card: { 
-        backgroundColor: 'white', 
-        borderRadius: 15, 
-        marginBottom: 15, 
-        elevation: 2,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.2,
-        shadowRadius: 2,
-        overflow: 'hidden',
-    },
-    mainInfo: {
-        padding: 20,
-    },
+    card: { backgroundColor: 'white', borderRadius: 15, marginBottom: 15, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.2, shadowRadius: 2, overflow: 'hidden' },
+    mainInfo: { padding: 20 },
     exerciseName: { fontSize: 20, fontWeight: 'bold', color: '#333', marginBottom: 5 },
     muscleTag: { backgroundColor: '#e0e0e0', color: '#555', alignSelf: 'flex-start', paddingVertical: 3, paddingHorizontal: 8, borderRadius: 10, overflow: 'hidden', fontSize: 12 },
-    obsText: { // NOVO ESTILO PARA AS OBSERVAÇÕES
-        fontSize: 12, 
-        color: 'gray', 
-        marginTop: 10, 
-        fontStyle: 'italic' 
-    },
-    seriesRepsContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginTop: 15,
-    },
-    seriesRepsText: {
-        fontSize: 14,
-        color: '#555',
-    },
-    prSection: {
-        backgroundColor: '#444',
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingVertical: 15,
-        borderTopWidth: 1,
-        borderTopColor: '#555',
-    },
-    prLabel: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: 'white',
-    },
-    input: {
-        backgroundColor: '#555',
-        color: 'white',
-        borderRadius: 8,
-        paddingHorizontal: 15,
-        paddingVertical: 8,
-        fontSize: 18,
-        width: 80,
-        textAlign: 'center',
-        marginLeft: 10,
-    },
-    unitText: {
-        fontSize: 16,
-        color: '#ccc',
-        marginLeft: 8,
-    }
+    obsText: { fontSize: 12, color: 'gray', marginTop: 10, fontStyle: 'italic' },
+    seriesRepsContainer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 15 },
+    seriesRepsText: { fontSize: 14, color: '#555' },
+    prSection: { backgroundColor: '#444', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 15, borderTopWidth: 1, borderTopColor: '#555' },
+    prLabel: { fontSize: 18, fontWeight: 'bold', color: 'white' },
+    input: { backgroundColor: '#555', color: 'white', borderRadius: 8, paddingHorizontal: 15, paddingVertical: 8, fontSize: 18, width: 80, textAlign: 'center', marginLeft: 10 },
+    unitText: { fontSize: 16, color: '#ccc', marginLeft: 8 }
 });
-
