@@ -39,7 +39,7 @@ export default function ManageSportsScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
-            <Stack.Screen options={{ title: 'Gerir Esportes' }} />
+            <Stack.Screen options={{ title: 'Gerenciar Esportes' }} />
             
             <View style={styles.addSection}>
                 <Pressable style={styles.iconPickerButton} onPress={() => setIsPickerVisible(true)}>
@@ -62,13 +62,13 @@ export default function ManageSportsScreen() {
                 contentContainerStyle={{ paddingHorizontal: 20 }}
                 renderItem={({ item }) => (
                     <View style={styles.card}>
-                        <Text style={styles.cardTitle}>{item.name}</Text>
+                        <Text style={styles.cardTitle}>{item.name} </Text>
                         <Pressable onPress={() => handleDeleteSport(item)}>
                             <Ionicons name="trash-outline" size={24} color="red" />
                         </Pressable>
                     </View>
                 )}
-                ListHeaderComponent={<Text style={styles.listHeader}>Esportes Personalizados</Text>}
+                ListHeaderComponent={<Text style={styles.listHeader}>Esportes Personalizados </Text>}
             />
 
             <IconPickerModal 

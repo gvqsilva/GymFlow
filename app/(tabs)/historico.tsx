@@ -84,17 +84,17 @@ export default function HistoryScreen() {
                 <Pressable style={styles.modalContainer} onPress={() => setIsModalVisible(false)}>
                     <Pressable style={styles.modalContent}>
                         <Text style={styles.modalTitle}>Resumo do Dia</Text>
-                        
+                        <Text style={styles.activitiesTitle}>Suplementação</Text>
                         <View style={styles.supplementsSection}>
                             <View style={styles.supplementItem}>
-                                <Text style={styles.supplementName}>Creatina</Text>
+                                <Text style={styles.supplementName}>Creatina </Text>
                                 {creatineOnSelectedDay ? (
                                     <View style={styles.statusContainer}><Ionicons name="checkmark-circle" size={20} color="#2ecc71" /><Text style={[styles.supplementStatus, {color: '#2ecc71'}]}>Tomada</Text></View>
                                 ) : (
                                     <View style={styles.statusContainer}><Ionicons name="close-circle" size={20} color="#e74c3c" /><Text style={[styles.supplementStatus, {color: '#e74c3c'}]}>Não Tomada</Text></View>
                                 )}
                             </View>
-                            <View style={styles.supplementItem}><Text style={styles.supplementName}>Whey Protein</Text><Text style={styles.supplementStatus_whey}>{wheyOnSelectedDay} dose(s)</Text></View>
+                            <View style={styles.supplementItem}><Text style={styles.supplementName}>Whey Protein </Text><Text style={styles.supplementStatus_whey}>{wheyOnSelectedDay} dose(s)</Text></View>
                         </View>
 
                         <Text style={styles.activitiesTitle}>Atividades Físicas</Text>
@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
     supplementStatus: { fontSize: 16, fontWeight: 'bold', marginLeft: 5 },
     supplementStatus_whey: { fontSize: 16, fontWeight: 'bold', color: themeColor },
     statusContainer: { flexDirection: 'row', alignItems: 'center' },
-    activitiesTitle: { fontSize: 18, fontWeight: 'bold', color: '#555', marginBottom: 10 },
+    activitiesTitle: { fontSize: 20, fontWeight: 'bold', color: '#555', marginBottom: 10, textAlign: 'center' },
     activityItem: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#eee', alignItems: 'center' },
     activityName: { fontSize: 16, color: '#333' },
     // NOVO
