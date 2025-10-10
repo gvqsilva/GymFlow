@@ -83,6 +83,14 @@ export default function SettingsScreen() {
                     </View>
                 </Pressable>
 
+                {/* NOVO CARD PARA GERIR SUPLEMENTOS */}
+                <Pressable style={styles.linkCard} onPress={() => router.push('/gerir-suplementos')}>
+                    <View>
+                        <Text style={styles.cardTitle}>Gerir Suplementos</Text>
+                        <Text style={styles.cardSubtitle}>Adicione, edite ou apague suplementos</Text>
+                    </View>
+                </Pressable>
+
                 <View style={styles.card}>
                     <View>
                         <Text style={styles.cardTitle}>Lembrete de Creatina</Text>

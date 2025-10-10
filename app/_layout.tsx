@@ -28,6 +28,8 @@ export default function RootLayout() {
         <Stack.Screen name="exercicio-modal" options={{ presentation: 'modal', title: 'Exercício' }} />
         <Stack.Screen name="ficha-modal" options={{ presentation: 'modal', title: 'Nova Ficha' }} />
         <Stack.Screen name="perfil-modal" options={{ presentation: 'modal', title: 'Meu Perfil' }} />
+        <Stack.Screen name="gerir-suplementos" options={{ title: 'Gerir Suplementos' }} />
+        <Stack.Screen name="suplemento-modal" options={{ presentation: 'modal', title: 'Suplemento' }} />
       </Stack>
       
       <Toast />

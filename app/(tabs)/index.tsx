@@ -6,9 +6,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useIsFocused } from '@react-navigation/native';
 import { Link } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { scheduleNextReminder } from '../../lib/notificationService';
 import { useWorkouts } from '../../hooks/useWorkouts';
 import { useSportsContext } from '../../context/SportsProvider';
+import { useSupplements, Supplement } from '../../hooks/useSupplements';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import ViewShot from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
@@ -17,8 +17,7 @@ import Toast from 'react-native-toast-message';
 
 const themeColor = '#5a4fcf';
 
-const CREATINE_HISTORY_KEY = 'creatineHistory';
-const WHEY_HISTORY_KEY = 'wheyHistory';
+const SUPPLEMENTS_HISTORY_KEY = 'supplements_history';
 
 const getLocalDateString = (date = new Date()) => {
     const year = date.getFullYear();
@@ -79,11 +78,12 @@ const WeeklySummaryGraph = ({ data, iconMap }: { data: { [key: string]: number }
 
 export default function HomeScreen() {
     const { workouts, isLoading: isLoadingWorkouts, refreshWorkouts } = useWorkouts();
-    const { sports } = useSportsContext(); // ALTERADO
+    const { sports } = useSportsContext();
+    const { supplements, refreshSupplements } = useSupplements();
+    
     const [userName, setUserName] = useState('Utilizador');
     const [weeklyGymWorkouts, setWeeklyGymWorkouts] = useState(0);
-    const [creatineTaken, setCreatineTaken] = useState(false);
-    const [wheyCount, setWheyCount] = useState(0);
+    const [supplementsHistory, setSupplementsHistory] = useState<Record<string, any>>({});
     const [weeklySummary, setWeeklySummary] = useState<{ [key: string]: number }>({});
     const [nextWorkoutId, setNextWorkoutId] = useState('A');
     const [totalCaloriesToday, setTotalCaloriesToday] = useState(0);
@@ -92,7 +92,6 @@ export default function HomeScreen() {
 
     const viewShotRef = useRef<ViewShot>(null);
     const isFocused = useIsFocused();
-    // NOVO: Ref para controlar se o toast de boas-vindas já foi exibido
     const welcomeToastShown = useRef(false);
     
     const sportIconMap = useMemo(() => {
@@ -108,18 +107,10 @@ export default function HomeScreen() {
         const today = getLocalDateString();
         try {
             const profileJSON = await AsyncStorage.getItem('userProfile');
-            if (profileJSON) {
-                const { name } = JSON.parse(profileJSON);
-                setUserName(name || 'Utilizador');
-            }
+            if (profileJSON) setUserName(JSON.parse(profileJSON).name || 'Utilizador');
 
-            const creatineHistoryJSON = await AsyncStorage.getItem(CREATINE_HISTORY_KEY);
-            const creatineHistory = creatineHistoryJSON ? JSON.parse(creatineHistoryJSON) : {};
-            setCreatineTaken(!!creatineHistory[today]);
-
-            const wheyHistoryJSON = await AsyncStorage.getItem(WHEY_HISTORY_KEY);
-            const wheyHistory = wheyHistoryJSON ? JSON.parse(wheyHistoryJSON) : {};
-            setWheyCount(wheyHistory[today] || 0);
+            const historyJSON = await AsyncStorage.getItem(SUPPLEMENTS_HISTORY_KEY);
+            setSupplementsHistory(historyJSON ? JSON.parse(historyJSON) : {});
 
             const workoutHistoryJSON = await AsyncStorage.getItem('workoutHistory');
             if (workoutHistoryJSON) {
@@ -153,7 +144,6 @@ export default function HomeScreen() {
 
             const savedNextWorkoutId = await AsyncStorage.getItem('nextWorkoutId');
             setNextWorkoutId(savedNextWorkoutId || 'A');
-
         } catch (e) {
             console.error("Failed to load data.", e);
         }
@@ -161,92 +151,55 @@ export default function HomeScreen() {
     
     useEffect(() => {
         if (isFocused) {
+            refreshSupplements();
             loadData();
             refreshWorkouts();
-            if (typeof scheduleNextReminder === 'function') {
-                scheduleNextReminder();
-            }
         }
-    }, [isFocused, loadData, refreshWorkouts]);
+    }, [isFocused, loadData, refreshWorkouts, refreshSupplements]);
 
-    // NOVO: useEffect para exibir o Toast de Boas-Vindas
     useEffect(() => {
-        // Garante que o toast só aparece uma vez por sessão,
-        // quando o ecrã está focado e o nome do utilizador já foi carregado.
         if (isFocused && !welcomeToastShown.current && userName !== 'Utilizador') {
             Toast.show({
                 type: 'info',
                 text1: `Bem-vindo de volta, ${userName}!`,
                 text2: 'Pronto para esmagar os seus objetivos hoje? 💪',
-                visibilityTime: 4000 // Duração de 4 segundos
+                visibilityTime: 4000
             });
-            welcomeToastShown.current = true; // Marca o toast como exibido para esta sessão
+            welcomeToastShown.current = true;
         }
-    }, [isFocused, userName]); // Depende do foco e do nome do utilizador
+    }, [isFocused, userName]);
 
-    const handleCreatinePress = async () => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const updateSupplementValue = async (supplement: Supplement, newValue: boolean | number) => {
         const today = getLocalDateString();
-        const newStatus = !creatineTaken;
-        setCreatineTaken(newStatus);
+        const newHistory = JSON.parse(JSON.stringify(supplementsHistory));
+
+        if (!newHistory[today]) {
+            newHistory[today] = {};
+        }
+
+        const previousValue = newHistory[today][supplement.id];
+        newHistory[today][supplement.id] = newValue;
         
-        try {
-            const historyJSON = await AsyncStorage.getItem(CREATINE_HISTORY_KEY);
-            const history = historyJSON ? JSON.parse(historyJSON) : {};
+        if (!newValue) {
+            delete newHistory[today][supplement.id];
+        }
 
-            if (newStatus) {
-                history[today] = true;
-                Toast.show({ type: 'success', text1: 'Creatina registada!', text2: 'Bom trabalho, mantenha a consistência.' });
-            } else {
-                delete history[today];
-                Toast.show({ type: 'info', text1: 'Registo da creatina removido.' });
-            }
-            
-            await AsyncStorage.setItem(CREATINE_HISTORY_KEY, JSON.stringify(history));
-            
-            if (typeof scheduleNextReminder === 'function') {
-                await scheduleNextReminder();
-            }
-        } catch (e) { 
-            console.error("Failed to save creatine history.", e); 
-            Toast.show({ type: 'error', text1: 'Erro', text2: 'Não foi possível guardar o registo.' });
+        setSupplementsHistory(newHistory);
+        await AsyncStorage.setItem(SUPPLEMENTS_HISTORY_KEY, JSON.stringify(newHistory));
+
+        if (supplement.trackingType === 'daily_check') {
+            Toast.show({
+                type: newValue ? 'success' : 'info',
+                text1: newValue ? `${supplement.name} registado!` : `Registo de ${supplement.name} removido.`
+            });
+        } else if (supplement.trackingType === 'counter') {
+            const didIncrement = newValue > (previousValue || 0);
+            Toast.show({
+                type: didIncrement ? 'success' : 'info',
+                text1: `Dose de ${supplement.name} ${didIncrement ? 'Adicionada' : 'Removida'} (${newValue})`
+            });
         }
     };
-
-    const updateWheyCount = async (newCount: number) => {
-        if (newCount < 0) return;
-
-        const oldCount = wheyCount;
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        setWheyCount(newCount);
-        const today = getLocalDateString();
-
-        try {
-            const historyJSON = await AsyncStorage.getItem(WHEY_HISTORY_KEY);
-            const history = historyJSON ? JSON.parse(historyJSON) : {};
-
-            if (newCount > 0) {
-                history[today] = newCount;
-            } else {
-                delete history[today];
-            }
-
-            await AsyncStorage.setItem(WHEY_HISTORY_KEY, JSON.stringify(history));
-
-            if (newCount > oldCount) {
-                Toast.show({ type: 'success', text1: `Dose de Whey Adicionada (${newCount})` });
-            } else if (newCount < oldCount) {
-                Toast.show({ type: 'info', text1: `Dose de Whey Removida (${newCount})` });
-            }
-
-        } catch (e) { 
-            console.error("Failed to save whey history.", e);
-            Toast.show({ type: 'error', text1: 'Erro', text2: 'Não foi possível guardar o registo de whey.' });
-        }
-    };
-
-    const handleWheyIncrement = () => updateWheyCount(wheyCount + 1);
-    const handleWheyDecrement = () => updateWheyCount(wheyCount - 1);
     
     const handleShare = async () => {
         if (viewShotRef.current?.capture) {
@@ -291,38 +244,61 @@ export default function HomeScreen() {
                         </View>
                     </Pressable>
 
-                    <Pressable style={styles.card} onPress={handleCreatinePress}>
-                        <View>
-                            <Text style={styles.cardTitle}>Creatina </Text>
-                            <Text style={styles.cardDose}>Dose: 6g </Text>
-                        </View>
-                        <Text style={[styles.statusIcon, { color: creatineTaken ? 'green' : 'red' }]}>
-                            {creatineTaken ? '✔' : '❌'}
-                        </Text>
-                    </Pressable>
-                    <View style={styles.card}>
-                        <View>
-                            <Text style={styles.cardTitle}>Whey </Text>
-                            <Text style={styles.cardDose}>Dose: 30g </Text>
-                        </View>
-                        <View style={styles.wheyCounter}>
-                            <Pressable onPress={handleWheyDecrement} style={styles.wheyButton}>
-                                <Text style={styles.wheyArrow}>{'<'}</Text>
-                            </Pressable>
-                            <Text style={styles.wheyCountText}>{wheyCount}</Text>
-                            <Pressable onPress={handleWheyIncrement} style={styles.wheyButton}>
-                                <Text style={styles.wheyArrow}>{'>'}</Text>
-                            </Pressable>
-                        </View>
-                    </View>
+                    {supplements.map((supplement) => {
+                        const today = getLocalDateString();
+                        const currentValue = supplementsHistory[today]?.[supplement.id];
+
+                        if (supplement.trackingType === 'daily_check') {
+                            const isTaken = !!currentValue;
+                            return (
+                                <Pressable key={supplement.id} style={styles.card} onPress={() => {
+                                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                                    updateSupplementValue(supplement, !isTaken);
+                                }}>
+                                    <View>
+                                        <Text style={styles.cardTitle}>{supplement.name}</Text>
+                                        <Text style={styles.cardDose}>{`Dose: ${supplement.dose}${supplement.unit}`}</Text>
+                                    </View>
+                                    <Text style={[styles.statusIcon, { color: isTaken ? 'green' : 'red' }]}>
+                                        {isTaken ? '✔' : '❌'}
+                                    </Text>
+                                </Pressable>
+                            );
+                        }
+
+                        if (supplement.trackingType === 'counter') {
+                            const count = currentValue || 0;
+                            return (
+                                <View key={supplement.id} style={styles.card}>
+                                    <View>
+                                        <Text style={styles.cardTitle}>{supplement.name} </Text>
+                                        <Text style={styles.cardDose}>{`Dose: ${supplement.dose}${supplement.unit}`} </Text>
+                                    </View>
+                                    <View style={styles.wheyCounter}>
+                                        <Pressable onPress={() => {
+                                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                            updateSupplementValue(supplement, Math.max(0, count - 1));
+                                        }} style={styles.wheyButton}>
+                                            <Text style={styles.wheyArrow}>{'<'}</Text>
+                                        </Pressable>
+                                        <Text style={styles.wheyCountText}>{count}</Text>
+                                        <Pressable onPress={() => {
+                                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                            updateSupplementValue(supplement, count + 1);
+                                        }} style={styles.wheyButton}>
+                                            <Text style={styles.wheyArrow}>{'>'}</Text>
+                                        </Pressable>
+                                    </View>
+                                </View>
+                            );
+                        }
+                        return null;
+                    })}
                     
                     <View style={styles.card}>
                         <Text style={styles.cardTitle}>{nextWorkoutName} </Text>
                         <Link 
-                            href={{
-                                pathname: "/fichas/[id]",
-                                params: { id: nextWorkoutId, title: nextWorkoutName }
-                            }} 
+                            href={{ pathname: "/fichas/[id]", params: { id: nextWorkoutId, title: nextWorkoutName } }} 
                             asChild
                         >
                             <Pressable style={styles.button}>
@@ -355,7 +331,7 @@ export default function HomeScreen() {
 
                 <Pressable style={styles.modalContainer} onPress={() => setIsDetailsModalVisible(false)}>
                     <Pressable style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>Detalhes do Gasto Calórico de Hoje </Text>
+                        <Text style={styles.modalTitle}>Gasto Calórias de Hoje </Text>
                         <FlatList
                             data={todayActivities}
                             keyExtractor={(item, index) => `${item.category}-${index}`}
@@ -368,11 +344,11 @@ export default function HomeScreen() {
                                 return (
                                     <View style={styles.activityItem}>
                                         <Text style={styles.activityName}>{activityDisplayName} </Text>
-                                        <Text style={styles.activityCalories}>{item.details?.calories || 0} kcal </Text>
+                                        <Text style={styles.activityCalories}>{item.details?.calories || 0} kcal</Text>
                                     </View>
                                 );
                             }}
-                            ListEmptyComponent={<Text style={styles.noActivityTextModal}>Nenhuma atividade registada. </Text>}
+                            ListEmptyComponent={<Text style={styles.noActivityTextModal}>Nenhuma atividade registada.</Text>}
                         />
                         <View style={styles.modalFooter}>
                             {todayActivities.length > 0 && (
@@ -392,7 +368,6 @@ export default function HomeScreen() {
     );
 };
 
-
 const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: '#f0f2f5' },
     header: { backgroundColor: themeColor, paddingHorizontal: 25, paddingTop: 80, paddingBottom: 40, borderBottomLeftRadius: 30, borderBottomRightRadius: 30, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
@@ -400,7 +375,7 @@ const styles = StyleSheet.create({
     greetingLarge: { fontSize: 36, fontWeight: 'bold', color: 'white' },
     workoutCount: { fontSize: 16, color: 'white', fontWeight: '500', textAlign: 'right' },
     content: { padding: 20 },
-    card: { backgroundColor: 'white', borderRadius: 20, paddingHorizontal: 25, marginBottom: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3, height: 95 },
+    card: { backgroundColor: 'white', borderRadius: 20, paddingHorizontal: 25, marginBottom: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3, minHeight: 95 },
     cardTitle: { fontSize: 22, fontWeight: 'bold', color: '#333' },
     cardDose: { fontSize: 14, color: 'gray', marginTop: 5 },
     statusIcon: { fontSize: 30 },
