@@ -5,25 +5,14 @@ import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator } from '
 import { Link, Stack, Href, useFocusEffect } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSportsContext } from '../../context/SportsProvider';
 
 const themeColor = '#5a4fcf';
 
-const sports = [
-    { id: 'academia', name: 'Academia', icon: 'barbell-outline' as const, library: 'Ionicons' },
-    { id: 'volei_quadra', name: 'Vôlei de Quadra', icon: 'volleyball' as const, library: 'MaterialCommunityIcons' },
-    { id: 'volei_praia', name: 'Vôlei de Praia', icon: 'sunny-outline' as const, library: 'Ionicons' },
-    { id: 'futebol', name: 'Futebol Society', icon: 'football-outline' as const, library: 'Ionicons' },
-    { id: 'boxe', name: 'Boxe', icon: 'boxing-glove' as const, library: 'MaterialCommunityIcons' },
-];
-
-// Resumo mensal para cada desporto
 const MonthlyActivitySummary = ({ history, sportName }: { history: any[], sportName: string }) => {
-    const daysOfWeek = ['Dom ', 'Seg ', 'Ter ', 'Qua ', 'Qui ', 'Sex ', 'Sáb '];
+    const daysOfWeek = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
     const dayCounts = [0, 0, 0, 0, 0, 0, 0];
-
     const currentMonth = new Date().getMonth();
-
-    // CORREÇÃO: Mapeia o nome de exibição "Academia" para o nome guardado "Musculação"
     const categoryToFilter = sportName === 'Academia' ? 'Musculação' : sportName;
 
     const monthlySportHistory = history.filter(entry => {
@@ -45,8 +34,8 @@ const MonthlyActivitySummary = ({ history, sportName }: { history: any[], sportN
             <View style={styles.summaryGrid}>
                 {daysOfWeek.map((day, index) => (
                     <View key={day} style={styles.dayColumn}>
-                        <Text style={styles.dayCount}>{dayCounts[index]} </Text>
-                        <Text style={styles.dayLabel}>{day} </Text>
+                        <Text style={styles.dayCount}>{dayCounts[index]}</Text>
+                        <Text style={styles.dayLabel}>{day}</Text>
                     </View>
                 ))}
             </View>
@@ -54,22 +43,24 @@ const MonthlyActivitySummary = ({ history, sportName }: { history: any[], sportN
     );
 };
 
-
 export default function SportsScreen() {
+    const { sports, isLoading: isLoadingSports } = useSportsContext();
     const [history, setHistory] = useState<any[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoadingHistory, setIsLoadingHistory] = useState(true);
 
     useFocusEffect(
       useCallback(() => {
         const loadHistory = async () => {
-          setIsLoading(true);
+          setIsLoadingHistory(true);
           const historyJSON = await AsyncStorage.getItem('workoutHistory');
           setHistory(historyJSON ? JSON.parse(historyJSON) : []);
-          setIsLoading(false);
+          setIsLoadingHistory(false);
         };
         loadHistory();
       }, [])
     );
+
+    const isLoading = isLoadingSports || isLoadingHistory;
 
     if (isLoading) {
         return (
@@ -92,7 +83,7 @@ export default function SportsScreen() {
             />
             <FlatList
                 data={sports}
-                keyExtractor={(item) => item.name}
+                keyExtractor={(item) => item.id}
                 contentContainerStyle={{ padding: 15 }}
                 renderItem={({ item }) => {
                     const href: Href = item.name === 'Academia' 
@@ -107,7 +98,7 @@ export default function SportsScreen() {
                                 <View style={styles.cardHeader}>
                                     <IconComponent name={item.icon as any} size={32} color={themeColor} />
                                     <View style={styles.cardTextContainer}>
-                                        <Text style={styles.cardTitle}>{item.name} </Text>
+                                        <Text style={styles.cardTitle}>{item.name}</Text>
                                     </View>
                                     <Ionicons name="chevron-forward-outline" size={24} color="#ccc" />
                                 </View>
@@ -123,59 +114,14 @@ export default function SportsScreen() {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#f0f2f5' },
-    card: {
-        backgroundColor: 'white',
-        borderRadius: 15,
-        padding: 20,
-        marginBottom: 15,
-        elevation: 3,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.2,
-        shadowRadius: 2,
-    },
-    cardHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-    },
-    cardTextContainer: {
-        flex: 1,
-        marginLeft: 15,
-    },
-    cardTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#333',
-    },
-    summaryContainer: {
-        marginTop: 20,
-        paddingTop: 15,
-        borderTopWidth: 1,
-        borderTopColor: '#eee',
-    },
-    summaryTitle: {
-        textAlign: 'center',
-        color: 'gray',
-        marginBottom: 15,
-        fontWeight: '600',
-    },
-    summaryGrid: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-    },
-    dayColumn: {
-        alignItems: 'center',
-    },
-    dayCount: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: themeColor,
-        marginBottom: 4,
-    },
-    dayLabel: {
-        fontSize: 12,
-        color: 'gray',
-    }
+    card: { backgroundColor: 'white', borderRadius: 15, padding: 20, marginBottom: 15, elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.2, shadowRadius: 2, },
+    cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', },
+    cardTextContainer: { flex: 1, marginLeft: 15, },
+    cardTitle: { fontSize: 20, fontWeight: 'bold', color: '#333', },
+    summaryContainer: { marginTop: 20, paddingTop: 15, borderTopWidth: 1, borderTopColor: '#eee', },
+    summaryTitle: { textAlign: 'center', color: 'gray', marginBottom: 15, fontWeight: '600', },
+    summaryGrid: { flexDirection: 'row', justifyContent: 'space-around', },
+    dayColumn: { alignItems: 'center', },
+    dayCount: { fontSize: 18, fontWeight: 'bold', color: themeColor, marginBottom: 4, },
+    dayLabel: { fontSize: 12, color: 'gray', }
 });
-

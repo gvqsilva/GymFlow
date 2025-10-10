@@ -6,11 +6,11 @@ import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
 import { useWorkouts } from '../hooks/useWorkouts';
+import { useSportsContext } from '../context/SportsProvider';
 import { Ionicons } from '@expo/vector-icons';
 
 const themeColor = '#5a4fcf';
 
-// --- CONFIGURAÇÃO DO CALENDÁRIO ---
 LocaleConfig.locales['pt-br'] = {
   monthNames: ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'],
   monthNamesShort: ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'],
@@ -20,24 +20,16 @@ LocaleConfig.locales['pt-br'] = {
 };
 LocaleConfig.defaultLocale = 'pt-br';
 
-// --- TIPOS PARA SEGURANÇA DO CÓDIGO ---
 interface ActivityOption {
     id: string;
     name: string;
     isSport: boolean | 'divider';
-    groups?: string; // Propriedade opcional
+    groups?: string;
 }
 
-const sportsList: ActivityOption[] = [
-    { id: 'volei_quadra', name: 'Vôlei de Quadra', isSport: true },
-    { id: 'volei_praia', name: 'Vôlei de Praia', isSport: true },
-    { id: 'futebol', name: 'Futebol Society', isSport: true },
-    { id: 'boxe', name: 'Boxe', isSport: true },
-];
-
-// --- COMPONENTE PRINCIPAL ---
 export default function DataManagementScreen() {
     const { workouts } = useWorkouts();
+    const { sports } = useSportsContext();
     const router = useRouter();
     const [history, setHistory] = useState<any[]>([]);
     const [selectedDay, setSelectedDay] = useState('');
@@ -46,6 +38,7 @@ export default function DataManagementScreen() {
 
     useFocusEffect(
         useCallback(() => {
+            // 'refreshSports()' já não é necessário aqui
             const loadHistory = async () => {
                 try {
                     const historyJSON = await AsyncStorage.getItem('workoutHistory');
@@ -60,18 +53,27 @@ export default function DataManagementScreen() {
     );
 
     const activityOptions = useMemo((): ActivityOption[] => {
+        const dynamicSports: ActivityOption[] = sports
+            .filter(sport => sport.id !== 'academia')
+            .map(sport => ({
+                id: sport.id,
+                name: sport.name,
+                isSport: true,
+            }));
+
         const gymWorkouts: ActivityOption[] = Object.values(workouts).map(w => ({ 
             id: w.id, 
             name: w.name, 
             isSport: false, 
             groups: w.groups 
         }));
+        
         return [
-            ...sportsList, 
+            ...dynamicSports, 
             { id: 'divider', name: 'Fichas de Treino', isSport: 'divider' },
             ...gymWorkouts
         ];
-    }, [workouts]);
+    }, [sports, workouts]);
 
     const markedDates = useMemo(() => {
         const marked: { [key: string]: any } = {};
@@ -101,7 +103,6 @@ export default function DataManagementScreen() {
         if (item.isSport === true) {
             router.push({ pathname: '/logEsporte', params: { esporte: item.name, date: selectedDay } });
         } else if (item.isSport === false) {
-            // CORREÇÃO AQUI: A rota é dinâmica
             router.push({ 
                 pathname: "/fichas/[id]", 
                 params: { id: item.id, title: item.name, date: selectedDay } 
@@ -136,7 +137,6 @@ export default function DataManagementScreen() {
                 theme={{ selectedDayBackgroundColor: themeColor, arrowColor: themeColor, todayTextColor: themeColor }}
             />
 
-            {/* Modal de Detalhes do Dia */}
             <Modal animationType="slide" transparent={true} visible={isDetailsModalVisible} onRequestClose={() => setIsDetailsModalVisible(false)}>
                 <Pressable style={styles.modalContainer} onPress={() => setIsDetailsModalVisible(false)}>
                     <Pressable style={styles.modalContent}>
@@ -171,7 +171,6 @@ export default function DataManagementScreen() {
                 </Pressable>
             </Modal>
 
-            {/* Modal de Adicionar Atividade */}
             <Modal animationType="slide" transparent={true} visible={isAddModalVisible} onRequestClose={() => setIsAddModalVisible(false)}>
                  <Pressable style={styles.modalContainer} onPress={() => setIsAddModalVisible(false)}>
                     <Pressable style={styles.modalContent}>
@@ -186,7 +185,6 @@ export default function DataManagementScreen() {
                                 return (
                                     <Pressable style={styles.optionButton} onPress={() => handleAddActivitySelect(item)}>
                                         <Text style={styles.optionButtonText}>{item.name}</Text>
-                                        {/* CORREÇÃO AQUI: Renderização segura da propriedade 'groups' */}
                                         {'groups' in item && item.groups && (
                                             <Text style={styles.optionButtonSubtitle}>{item.groups}</Text>
                                         )}

@@ -107,7 +107,14 @@ export default function SettingsScreen() {
                     </View>
                 </Pressable>
 
-                {/* NOVO CARD PARA A GESTÃO DE DADOS */}
+                {/* NOVO CARD PARA GERIR ESPORTES */}
+                <Pressable style={styles.linkCard} onPress={() => router.push('/gerir-esportes')}>
+                    <View>
+                        <Text style={styles.cardTitle}>Gerenciar Esportes</Text>
+                        <Text style={styles.cardSubtitle}>Adicione ou remova modalidades</Text>
+                    </View>
+                </Pressable>
+                
                 <Pressable style={styles.linkCard} onPress={() => router.push('/gestao-dados')}>
                     <View>
                         <Text style={styles.cardTitle}>Gestão de Dados</Text>
@@ -161,4 +168,3 @@ const styles = StyleSheet.create({
     cardSubtitle: { fontSize: 14, color: 'gray', marginTop: 5 },
     reminderTimeText: { fontSize: 16, color: themeColor, marginTop: 5, fontWeight: 'bold' },
 });
-

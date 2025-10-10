@@ -4,6 +4,13 @@ interface ActivityMETs {
     [intensity: string]: number;
 }
 
+// NOVO: Valores MET padrão para desportos não listados
+export const DEFAULT_MET_VALUES = {
+    Leve: 3.0,     // Equivalente a uma caminhada leve
+    Moderada: 4.5,  // Equivalente a uma caminhada moderada/rápida
+    Alta: 7.0,      // Equivalente a um jogging leve ou ténis casual
+};
+
 export const MET_DATA: { [activity: string]: ActivityMETs } = {
     'Academia': {
         'Leve': 3.5,

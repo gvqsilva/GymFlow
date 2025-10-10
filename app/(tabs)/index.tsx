@@ -1,6 +1,6 @@
 // app/(tabs)/index.tsx
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, Pressable, StatusBar, ScrollView, Modal, FlatList, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useIsFocused } from '@react-navigation/native';
@@ -8,11 +8,12 @@ import { Link } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { scheduleNextReminder } from '../../lib/notificationService';
 import { useWorkouts } from '../../hooks/useWorkouts';
-import { Ionicons } from '@expo/vector-icons';
+import { useSportsContext } from '../../context/SportsProvider';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import ViewShot from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import ShareCard from '../../components/ShareCard';
-import Toast from 'react-native-toast-message'; // 1. IMPORTE O TOAST
+import Toast from 'react-native-toast-message';
 
 const themeColor = '#5a4fcf';
 
@@ -33,44 +34,52 @@ const getStartOfWeek = (date = new Date()) => {
     return new Date(d.setDate(diff));
 };
 
-const WeeklySummaryGraph = ({ data }: { data: { [key: string]: number } }) => {
+const WeeklySummaryGraph = ({ data, iconMap }: { data: { [key: string]: number }, iconMap: any }) => {
     const activities = Object.entries(data);
-    const nameMapping: { [key: string]: string } = {
-        'Musculação': 'Academia',
-        'Futebol Society': 'Futebol',
-        'Vôlei de Quadra': 'Quadra',
-        'Vôlei de Praia': 'Praia',
-        'Boxe': 'Boxe',
-    };
+
     if (activities.length === 0) {
         return (
             <View style={styles.graphContainer}>
-                <Text style={styles.graphTitle}>Resumo da Semana</Text>
-                <Text style={styles.noActivityText}>Nenhuma atividade registada esta semana.</Text>
+                <Text style={styles.graphTitle}>Resumo da Semana </Text>
+                <Text style={styles.noActivityText}>Nenhuma atividade registada esta semana. </Text>
             </View>
         );
     }
     const maxCount = Math.max(...activities.map(([, count]) => count), 1);
+    
     return (
         <View style={styles.graphContainer}>
-            <Text style={styles.graphTitle}>Resumo da Semana</Text>
+            <Text style={styles.graphTitle}>Resumo da Semana </Text>
             <View style={styles.barGraphContainer}>
-                {activities.map(([category, count]) => (
-                    <View key={category} style={styles.barWrapper}>
-                        <View style={styles.barItem}>
-                            <Text style={styles.barLabelCount}>{count}x</Text>
-                            <View style={[styles.bar, { height: `${(count / maxCount) * 100}%` }]} />
+                {activities.map(([category, count]) => {
+                    const iconInfo = iconMap[category];
+                    const IconComponent = iconInfo?.library === 'MaterialCommunityIcons' 
+                        ? MaterialCommunityIcons 
+                        : Ionicons;
+
+                    return (
+                        <View key={category} style={styles.barWrapper}>
+                            <View style={styles.barItem}>
+                                <Text style={styles.barLabelCount}>{count}x</Text>
+                                <View style={[styles.bar, { height: `${(count / maxCount) * 100}%` }]} />
+                            </View>
+                            {iconInfo ? (
+                                <IconComponent name={iconInfo.name as any} size={28} color={themeColor} style={styles.barLabelIcon} />
+                            ) : (
+                                <Ionicons name="help-circle-outline" size={28} color="gray" style={styles.barLabelIcon} />
+                            )}
                         </View>
-                        <Text style={styles.barLabelCategory}>{nameMapping[category] || category}</Text>
-                    </View>
-                ))}
+                    );
+                })}
             </View>
         </View>
     );
 };
 
+
 export default function HomeScreen() {
     const { workouts, isLoading: isLoadingWorkouts, refreshWorkouts } = useWorkouts();
+    const { sports } = useSportsContext(); // ALTERADO
     const [userName, setUserName] = useState('Utilizador');
     const [weeklyGymWorkouts, setWeeklyGymWorkouts] = useState(0);
     const [creatineTaken, setCreatineTaken] = useState(false);
@@ -82,11 +91,20 @@ export default function HomeScreen() {
     const [todayActivities, setTodayActivities] = useState<any[]>([]);
 
     const viewShotRef = useRef<ViewShot>(null);
-
     const isFocused = useIsFocused();
+    // NOVO: Ref para controlar se o toast de boas-vindas já foi exibido
+    const welcomeToastShown = useRef(false);
+    
+    const sportIconMap = useMemo(() => {
+        const map: Record<string, { name: string; library: string }> = {};
+        sports.forEach(sport => {
+            const key = sport.name === 'Academia' ? 'Musculação' : sport.name;
+            map[key] = { name: sport.icon as string, library: sport.library };
+        });
+        return map;
+    }, [sports]);
 
     const loadData = useCallback(async () => {
-        // ... (esta função não precisa de alterações)
         const today = getLocalDateString();
         try {
             const profileJSON = await AsyncStorage.getItem('userProfile');
@@ -106,28 +124,36 @@ export default function HomeScreen() {
             const workoutHistoryJSON = await AsyncStorage.getItem('workoutHistory');
             if (workoutHistoryJSON) {
                 const history: { date: string, category: string, details: { calories?: number, type?: string, duration?: number } }[] = JSON.parse(workoutHistoryJSON);
+                
                 const startOfWeekString = getLocalDateString(getStartOfWeek());
                 const weeklyHistory = history.filter(entry => entry.date >= startOfWeekString);
+                
                 const gymWorkoutsThisWeek = weeklyHistory.filter(entry => entry.category === 'Musculação');
                 setWeeklyGymWorkouts(gymWorkoutsThisWeek.length);
+                
                 const summary = weeklyHistory.reduce((acc, entry) => {
                     const category = entry.category || 'Outro';
                     acc[category] = (acc[category] || 0) + 1;
                     return acc;
                 }, {} as { [key: string]: number });
                 setWeeklySummary(summary);
+
                 const activitiesToday = history.filter(entry => entry.date === today);
                 setTodayActivities(activitiesToday);
+
                 const totalKcal = activitiesToday.reduce((sum, entry) => sum + (entry.details?.calories || 0), 0);
                 setTotalCaloriesToday(totalKcal);
+
             } else {
                 setWeeklyGymWorkouts(0);
                 setWeeklySummary({});
                 setTotalCaloriesToday(0);
                 setTodayActivities([]);
             }
+
             const savedNextWorkoutId = await AsyncStorage.getItem('nextWorkoutId');
             setNextWorkoutId(savedNextWorkoutId || 'A');
+
         } catch (e) {
             console.error("Failed to load data.", e);
         }
@@ -143,7 +169,21 @@ export default function HomeScreen() {
         }
     }, [isFocused, loadData, refreshWorkouts]);
 
-    // 2. ALTERE A FUNÇÃO handleCreatinePress
+    // NOVO: useEffect para exibir o Toast de Boas-Vindas
+    useEffect(() => {
+        // Garante que o toast só aparece uma vez por sessão,
+        // quando o ecrã está focado e o nome do utilizador já foi carregado.
+        if (isFocused && !welcomeToastShown.current && userName !== 'Utilizador') {
+            Toast.show({
+                type: 'info',
+                text1: `Bem-vindo de volta, ${userName}!`,
+                text2: 'Pronto para esmagar os seus objetivos hoje? 💪',
+                visibilityTime: 4000 // Duração de 4 segundos
+            });
+            welcomeToastShown.current = true; // Marca o toast como exibido para esta sessão
+        }
+    }, [isFocused, userName]); // Depende do foco e do nome do utilizador
+
     const handleCreatinePress = async () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         const today = getLocalDateString();
@@ -156,17 +196,10 @@ export default function HomeScreen() {
 
             if (newStatus) {
                 history[today] = true;
-                Toast.show({
-                    type: 'success',
-                    text1: 'Creatina registada!',
-                    text2: 'Bom trabalho, continue com a consistência.'
-                });
+                Toast.show({ type: 'success', text1: 'Creatina registada!', text2: 'Bom trabalho, mantenha a consistência.' });
             } else {
                 delete history[today];
-                Toast.show({
-                    type: 'info',
-                    text1: 'Registo de creatina removido.'
-                });
+                Toast.show({ type: 'info', text1: 'Registo da creatina removido.' });
             }
             
             await AsyncStorage.setItem(CREATINE_HISTORY_KEY, JSON.stringify(history));
@@ -176,29 +209,40 @@ export default function HomeScreen() {
             }
         } catch (e) { 
             console.error("Failed to save creatine history.", e); 
-            Toast.show({
-                type: 'error',
-                text1: 'Erro',
-                text2: 'Não foi possível guardar o registo.'
-            });
+            Toast.show({ type: 'error', text1: 'Erro', text2: 'Não foi possível guardar o registo.' });
         }
     };
 
     const updateWheyCount = async (newCount: number) => {
         if (newCount < 0) return;
+
+        const oldCount = wheyCount;
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         setWheyCount(newCount);
         const today = getLocalDateString();
+
         try {
             const historyJSON = await AsyncStorage.getItem(WHEY_HISTORY_KEY);
             const history = historyJSON ? JSON.parse(historyJSON) : {};
+
             if (newCount > 0) {
                 history[today] = newCount;
             } else {
                 delete history[today];
             }
+
             await AsyncStorage.setItem(WHEY_HISTORY_KEY, JSON.stringify(history));
-        } catch (e) { console.error("Failed to save whey history.", e); }
+
+            if (newCount > oldCount) {
+                Toast.show({ type: 'success', text1: `Dose de Whey Adicionada (${newCount})` });
+            } else if (newCount < oldCount) {
+                Toast.show({ type: 'info', text1: `Dose de Whey Removida (${newCount})` });
+            }
+
+        } catch (e) { 
+            console.error("Failed to save whey history.", e);
+            Toast.show({ type: 'error', text1: 'Erro', text2: 'Não foi possível guardar o registo de whey.' });
+        }
     };
 
     const handleWheyIncrement = () => updateWheyCount(wheyCount + 1);
@@ -230,27 +274,27 @@ export default function HomeScreen() {
                 <View style={styles.header}>
                     <View>
                         <Text style={styles.greetingSmall}>Olá,</Text>
-                        <Text style={styles.greetingLarge}>{userName}</Text>
+                        <Text style={styles.greetingLarge}>{userName} </Text>
                     </View>
-                    <Text style={styles.workoutCount}>{`Acad. na semana: ${weeklyGymWorkouts}`}</Text>
+                    <Text style={styles.workoutCount}>{`Acad. na semana: ${weeklyGymWorkouts}`} </Text>
                 </View>
 
                 <View style={styles.content}>
                     <Pressable style={styles.card} onPress={() => setIsDetailsModalVisible(true)}>
                         <View>
-                            <Text style={styles.cardTitle}>Gasto Calórico</Text>
-                            <Text style={styles.cardDose}>Estimativa de hoje</Text>
+                            <Text style={styles.cardTitle}>Gasto Calórico </Text>
+                            <Text style={styles.cardDose}>Estimativa de hoje </Text>
                         </View>
                         <View style={styles.caloriesDisplay}>
-                            <Text style={styles.caloriesValue}>{totalCaloriesToday}</Text>
-                            <Text style={styles.caloriesUnit}>kcal</Text>
+                            <Text style={styles.caloriesValue}>{totalCaloriesToday} </Text>
+                            <Text style={styles.caloriesUnit}>kcal </Text>
                         </View>
                     </Pressable>
 
                     <Pressable style={styles.card} onPress={handleCreatinePress}>
                         <View>
-                            <Text style={styles.cardTitle}>Creatina</Text>
-                            <Text style={styles.cardDose}>Dose: 6g</Text>
+                            <Text style={styles.cardTitle}>Creatina </Text>
+                            <Text style={styles.cardDose}>Dose: 6g </Text>
                         </View>
                         <Text style={[styles.statusIcon, { color: creatineTaken ? 'green' : 'red' }]}>
                             {creatineTaken ? '✔' : '❌'}
@@ -258,8 +302,8 @@ export default function HomeScreen() {
                     </Pressable>
                     <View style={styles.card}>
                         <View>
-                            <Text style={styles.cardTitle}>Whey</Text>
-                            <Text style={styles.cardDose}>Dose: 30g</Text>
+                            <Text style={styles.cardTitle}>Whey </Text>
+                            <Text style={styles.cardDose}>Dose: 30g </Text>
                         </View>
                         <View style={styles.wheyCounter}>
                             <Pressable onPress={handleWheyDecrement} style={styles.wheyButton}>
@@ -273,7 +317,7 @@ export default function HomeScreen() {
                     </View>
                     
                     <View style={styles.card}>
-                        <Text style={styles.cardTitle}>{nextWorkoutName}</Text>
+                        <Text style={styles.cardTitle}>{nextWorkoutName} </Text>
                         <Link 
                             href={{
                                 pathname: "/fichas/[id]",
@@ -282,12 +326,12 @@ export default function HomeScreen() {
                             asChild
                         >
                             <Pressable style={styles.button}>
-                                <Text style={styles.buttonText}>Abrir ficha</Text>
+                                <Text style={styles.buttonText}>Abrir ficha </Text>
                             </Pressable>
                         </Link>
                     </View>
 
-                    <WeeklySummaryGraph data={weeklySummary} />
+                    <WeeklySummaryGraph data={weeklySummary} iconMap={sportIconMap} />
                 </View>
             </ScrollView>
 
@@ -311,7 +355,7 @@ export default function HomeScreen() {
 
                 <Pressable style={styles.modalContainer} onPress={() => setIsDetailsModalVisible(false)}>
                     <Pressable style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>Detalhes do Gasto Calórico de Hoje</Text>
+                        <Text style={styles.modalTitle}>Detalhes do Gasto Calórico de Hoje </Text>
                         <FlatList
                             data={todayActivities}
                             keyExtractor={(item, index) => `${item.category}-${index}`}
@@ -323,24 +367,22 @@ export default function HomeScreen() {
                                 }
                                 return (
                                     <View style={styles.activityItem}>
-                                        <Text style={styles.activityName}>
-                                            {activityDisplayName}
-                                        </Text>
-                                        <Text style={styles.activityCalories}>{item.details?.calories || 0} kcal</Text>
+                                        <Text style={styles.activityName}>{activityDisplayName} </Text>
+                                        <Text style={styles.activityCalories}>{item.details?.calories || 0} kcal </Text>
                                     </View>
                                 );
                             }}
-                            ListEmptyComponent={<Text style={styles.noActivityTextModal}>Nenhuma atividade registada.</Text>}
+                            ListEmptyComponent={<Text style={styles.noActivityTextModal}>Nenhuma atividade registada. </Text>}
                         />
                         <View style={styles.modalFooter}>
                             {todayActivities.length > 0 && (
                                 <Pressable style={styles.shareButton} onPress={handleShare}>
                                     <Ionicons name="share-social-outline" size={20} color={themeColor} />
-                                    <Text style={styles.shareButtonText}>Compartilhar</Text>
+                                    <Text style={styles.shareButtonText}>Compartilhar </Text>
                                 </Pressable>
                             )}
                             <Pressable style={styles.closeButton} onPress={() => setIsDetailsModalVisible(false)}>
-                                <Text style={styles.closeButtonText}>Fechar</Text>
+                                <Text style={styles.closeButtonText}>Fechar </Text>
                             </Pressable>
                         </View>
                     </Pressable>
@@ -376,7 +418,7 @@ const styles = StyleSheet.create({
     barItem: { flex: 1, width: '100%', alignItems: 'center', justifyContent: 'flex-end', },
     bar: { width: 35, backgroundColor: themeColor, borderRadius: 5, },
     barLabelCount: { fontSize: 14, fontWeight: 'bold', color: '#333', marginBottom: 5, },
-    barLabelCategory: { marginTop: 8, fontSize: 12, color: 'gray', textAlign: 'center', },
+    barLabelIcon: { marginTop: 8, },
     caloriesDisplay: { alignItems: 'flex-end', },
     caloriesValue: { fontSize: 28, fontWeight: 'bold', color: themeColor, },
     caloriesUnit: { fontSize: 14, color: 'gray', },

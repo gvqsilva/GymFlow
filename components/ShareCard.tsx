@@ -8,16 +8,17 @@ import { Workout } from '../constants/workoutData';
 const themeColor = '#5a4fcf';
 
 const sportIcons: Record<string, { name: string; library: string }> = {
-  'Musculação': { name: 'barbell', library: 'Ionicons' },
-  'Vôlei de Quadra': { name: 'volleyball', library: 'MaterialCommunityIcons' },
-  'Vôlei de Praia': { name: 'sunny', library: 'Ionicons' },
-  'Futebol Society': { name: 'football', library: 'Ionicons' },
-  'Boxe': { name: 'boxing-glove', library: 'MaterialCommunityIcons' },
+  'Musculação ': { name: 'barbell', library: 'Ionicons' },
+  'Natação ': { name: 'swim', library: 'MaterialCommunityIcons'},
+  'Vôlei de Quadra ': { name: 'volleyball', library: 'MaterialCommunityIcons' },
+  'Vôlei de Praia ': { name: 'sunny', library: 'Ionicons' },
+  'Futebol Society ': { name: 'football', library: 'Ionicons' },
+  'Boxe ': { name: 'boxing-glove', library: 'MaterialCommunityIcons' },
 };
 
 type Activity = {
   category: string;
-  details: { type?: string; duration?: number };
+  details: { type?: string; duration?: number, distance?: number };
 };
 
 type ShareCardProps = {
@@ -37,7 +38,24 @@ const ShareCard = forwardRef<View, ShareCardProps>(
       year: 'numeric',
     });
 
-    // URL da imagem de fundo - SUBSTITUA POR UMA IMAGEM À SUA ESCOLHA
+    const formatDurationString = (totalMinutes: number): string => {
+        if (totalMinutes <= 0) {
+            return '0min';
+        }
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+
+        if (hours > 0 && minutes > 0) {
+            return `${hours}h ${minutes}min`;
+        }
+        if (hours > 0) {
+            return `${hours}h`;
+        }
+        return `${minutes}min`;
+    };
+
+    const durationString = formatDurationString(totalDuration);
+
     const backgroundImageUri = 'https://img.freepik.com/vetores-gratis/padrao-de-estilo-de-vida-saudavel-e-fitness_24877-56485.jpg?semt=ais_hybrid&w=740&q=80';
 
     return (
@@ -48,29 +66,33 @@ const ShareCard = forwardRef<View, ShareCardProps>(
           imageStyle={{ borderRadius: 15 }}
         >
           <View style={styles.overlay}>
-            <Text style={styles.appName}>GymFlow</Text>
+            <Text style={styles.appName}>GymFlow </Text>
             <Text style={styles.date}>{formattedDate} </Text>
 
             <View style={styles.activitiesContainer}>
               {activities.map((item, index) => {
-                const iconInfo = sportIcons[item.category];
-                const IconComponent = iconInfo?.library === 'MaterialCommunityIcons' ? MaterialCommunityIcons : Ionicons;
+                const iconInfo = sportIcons[item.category] || { name: 'help-circle', library: 'Ionicons' };
+                const IconComponent = iconInfo.library === 'MaterialCommunityIcons' ? MaterialCommunityIcons : Ionicons;
                 
-                const workoutName =
-                  item.category === 'Musculação' && item.details.type && workouts[item.details.type]
-                    ? `Academia - ${workouts[item.details.type].name}`
-                    : item.category;
+                let activityDisplayName = item.category;
+                if (item.category === 'Musculação' && item.details.type && workouts[item.details.type]) {
+                    activityDisplayName = `Academia - ${workouts[item.details.type].name}`;
+                }
 
-                const durationText =
-                  item.details.duration || item.category === 'Musculação'
-                    ? `(${item.details.duration || 60} min)`
-                    : '';
+                // ALTERADO: Formata a duração de cada atividade individual
+                const durationInMinutes = item.details.duration || (item.category === 'Musculação' ? 60 : 0);
+                const formattedDuration = formatDurationString(durationInMinutes);
+                
+                const isSwimmingWithDistance = item.category.toLowerCase() === 'natação' && item.details.distance && item.details.distance > 0;
 
                 return (
                   <View key={index} style={styles.activityRow}>
-                    <IconComponent name={iconInfo?.name as any || 'help-circle'} size={20} color="#fff" />
-                    <Text style={styles.activityText}>
-                      {workoutName} {durationText} </Text>
+                    <IconComponent name={iconInfo.name as any} size={20} color="#fff" />
+                    <View style={styles.activityTextContainer}>
+                        <Text style={styles.activityText}>{activityDisplayName} </Text>
+                        {/* ALTERADO: Exibe a duração já formatada */}
+                        <Text style={styles.activityDetailText}>{isSwimmingWithDistance ? `${item.details.distance}m em ` : ''}{formattedDuration} </Text>
+                    </View>
                   </View>
                 );
               })}
@@ -80,12 +102,12 @@ const ShareCard = forwardRef<View, ShareCardProps>(
 
             <View style={styles.totalsContainer}>
               <View style={styles.totalItem}>
-                <Text style={styles.totalValue}>{totalKcal} </Text>
+                <Text style={styles.totalValue}>{totalKcal}</Text>
                 <Text style={styles.totalLabel}>kcal </Text>
               </View>
               <View style={styles.totalItem}>
-                <Text style={styles.totalValue}>{totalDuration} </Text>
-                <Text style={styles.totalLabel}>min </Text>
+                <Text style={styles.totalValue}>{durationString}</Text>
+                <Text style={styles.totalLabel}>Duração </Text>
               </View>
             </View>
           </View>
@@ -96,73 +118,24 @@ const ShareCard = forwardRef<View, ShareCardProps>(
 );
 
 const styles = StyleSheet.create({
-  card: {
-    width: 350,
-    height: 500, // Altura fixa para um formato padronizado
-    borderRadius: 15,
-    justifyContent: 'space-between', // Distribui o conteúdo verticalmente
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 10,
+  card: { width: 350, height: 500, borderRadius: 15, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 5, elevation: 10 },
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 15, padding: 25, justifyContent: 'space-between' },
+  appName: { fontSize: 24, fontWeight: 'bold', color: 'white', textAlign: 'center' },
+  date: { fontSize: 14, color: '#ddd', textAlign: 'center', marginTop: 4 },
+  activitiesContainer: { alignSelf: 'stretch', marginVertical: 20 },
+  activityRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 15 },
+  activityTextContainer: { flex: 1, marginLeft: 12 },
+  activityText: { fontSize: 18, color: 'white', fontWeight: '500' },
+  activityDetailText: { fontSize: 14, color: '#ccc' },
+  divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.2)', width: '100%' },
+  totalsContainer: { flexDirection: 'row', justifyContent: 'space-around', alignSelf: 'stretch', paddingTop: 10 },
+  totalItem: { alignItems: 'center', flex: 1 },
+  totalValue: { 
+      fontSize: 28,
+      fontWeight: 'bold', 
+      color: 'white' 
   },
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)', // Camada escura para legibilidade
-    borderRadius: 15,
-    padding: 25,
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  appName: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: 'white',
-  },
-  date: {
-    fontSize: 14,
-    color: '#ddd',
-    marginTop: 4,
-  },
-  activitiesContainer: {
-    alignSelf: 'stretch',
-  },
-  activityRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  activityText: {
-    fontSize: 18,
-    marginLeft: 12,
-    color: 'white',
-    fontWeight: '500',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    width: '100%',
-  },
-  totalsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignSelf: 'stretch',
-  },
-  totalItem: {
-    alignItems: 'center',
-  },
-  totalValue: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: 'white',
-  },
-  totalLabel: {
-    fontSize: 14,
-    color: '#ddd',
-    marginTop: 2,
-  },
+  totalLabel: { fontSize: 14, color: '#ddd', marginTop: 2 },
 });
 
 export default ShareCard;
-

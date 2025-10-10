@@ -35,10 +35,8 @@ export default function HistoryScreen() {
             const loadAllHistory = async () => {
                 const workoutHistoryJSON = await AsyncStorage.getItem('workoutHistory');
                 setWorkoutHistory(workoutHistoryJSON ? JSON.parse(workoutHistoryJSON) : []);
-
                 const creatineHistoryJSON = await AsyncStorage.getItem(CREATINE_HISTORY_KEY);
                 setCreatineHistory(creatineHistoryJSON ? JSON.parse(creatineHistoryJSON) : {});
-                
                 const wheyHistoryJSON = await AsyncStorage.getItem(WHEY_HISTORY_KEY);
                 setWheyHistory(wheyHistoryJSON ? JSON.parse(wheyHistoryJSON) : {});
             };
@@ -73,83 +71,56 @@ export default function HistoryScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
-            <Stack.Screen 
-                options={{ 
-                    headerShown: true, 
-                    title: "Histórico", 
-                    headerStyle: { backgroundColor: themeColor }, 
-                    headerTintColor: '#fff' 
-                }} 
-            />
+            <Stack.Screen options={{ headerShown: true, title: "Histórico", headerStyle: { backgroundColor: themeColor }, headerTintColor: '#fff' }} />
             <Calendar
                 style={styles.calendar}
                 onDayPress={onDayPress}
                 markingType={'multi-dot'}
                 markedDates={markedDates}
-                theme={{
-                    selectedDayBackgroundColor: themeColor,
-                    arrowColor: themeColor,
-                    todayTextColor: themeColor,
-                    dotColor: themeColor,
-                }}
+                theme={{ selectedDayBackgroundColor: themeColor, arrowColor: themeColor, todayTextColor: themeColor, dotColor: themeColor }}
             />
 
-            <Modal
-                animationType="slide"
-                transparent={true}
-                visible={isModalVisible}
-                onRequestClose={() => setIsModalVisible(false)}
-            >
+            <Modal animationType="slide" transparent={true} visible={isModalVisible} onRequestClose={() => setIsModalVisible(false)}>
                 <Pressable style={styles.modalContainer} onPress={() => setIsModalVisible(false)}>
                     <Pressable style={styles.modalContent}>
                         <Text style={styles.modalTitle}>Resumo do Dia</Text>
-
-                        <Text style={styles.activitiesTitle}>Suplementos</Text>
+                        
                         <View style={styles.supplementsSection}>
                             <View style={styles.supplementItem}>
-                                <Text style={styles.supplementName}>Creatina </Text>
+                                <Text style={styles.supplementName}>Creatina</Text>
                                 {creatineOnSelectedDay ? (
-                                    <View style={styles.statusContainer}>
-                                        <Ionicons name="checkmark-circle" size={20} color="#2ecc71" />
-                                        <Text style={[styles.supplementStatus, {color: '#2ecc71'}]}>Tomada </Text>
-                                    </View>
+                                    <View style={styles.statusContainer}><Ionicons name="checkmark-circle" size={20} color="#2ecc71" /><Text style={[styles.supplementStatus, {color: '#2ecc71'}]}>Tomada</Text></View>
                                 ) : (
-                                    <View style={styles.statusContainer}>
-                                        <Ionicons name="close-circle" size={20} color="#e74c3c" />
-                                        <Text style={[styles.supplementStatus, {color: '#e74c3c'}]}>Não Tomada </Text>
-                                    </View>
+                                    <View style={styles.statusContainer}><Ionicons name="close-circle" size={20} color="#e74c3c" /><Text style={[styles.supplementStatus, {color: '#e74c3c'}]}>Não Tomada</Text></View>
                                 )}
                             </View>
-                             <View style={styles.supplementItem}>
-                                <Text style={styles.supplementName}>Whey Protein </Text>
-                                <Text style={styles.supplementStatus_whey}>{wheyOnSelectedDay} dose(s)</Text>
-                            </View>
+                            <View style={styles.supplementItem}><Text style={styles.supplementName}>Whey Protein</Text><Text style={styles.supplementStatus_whey}>{wheyOnSelectedDay} dose(s)</Text></View>
                         </View>
 
                         <Text style={styles.activitiesTitle}>Atividades Físicas</Text>
                         <FlatList
                             data={selectedDayActivities}
-                            keyExtractor={(item, index) => `${item.category}-${index}`}
+                            keyExtractor={(item) => item.id || `${item.category}-${Math.random()}`}
                             renderItem={({ item }) => {
                                 const workoutName = workouts[item.details?.type]?.name || item.details?.type;
                                 const activityName = item.category === 'Musculação' ? `${item.category} (${workoutName})` : item.category;
                                 const duration = item.details?.duration;
-                                const displayValue = item.category === 'Musculação' 
-                                    ? '60 min'
-                                    : duration ? `${duration} min` : '';
-
+                                // ALTERADO: Lógica para mostrar os detalhes
+                                const isSwimmingWithDistance = item.category.toLowerCase() === 'natação' && item.details?.distance > 0;
+                                
                                 return (
                                     <View style={styles.activityItem}>
                                         <Text style={styles.activityName}>{activityName} </Text>
-                                        {displayValue ? <Text style={styles.activityDetail}>{displayValue} </Text> : null}
+                                        <View style={styles.detailsContainer}>
+                                            {isSwimmingWithDistance && <Text style={styles.activityDetail}>{item.details.distance} m</Text>}
+                                            {duration && <Text style={styles.activityDetail}>{duration} min </Text>}
+                                        </View>
                                     </View>
                                 );
                             }}
                             ListEmptyComponent={<Text style={styles.noActivityText}>Nenhuma atividade registada.</Text>}
                         />
-                        <Pressable style={styles.closeButton} onPress={() => setIsModalVisible(false)}>
-                            <Text style={styles.closeButtonText}>Fechar</Text>
-                        </Pressable>
+                        <Pressable style={styles.closeButton} onPress={() => setIsModalVisible(false)}><Text style={styles.closeButtonText}>Fechar</Text></Pressable>
                     </Pressable>
                 </Pressable>
             </Modal>
@@ -169,10 +140,12 @@ const styles = StyleSheet.create({
     supplementStatus: { fontSize: 16, fontWeight: 'bold', marginLeft: 5 },
     supplementStatus_whey: { fontSize: 16, fontWeight: 'bold', color: themeColor },
     statusContainer: { flexDirection: 'row', alignItems: 'center' },
-    activitiesTitle: { fontSize: 18, fontWeight: 'bold', color: '#555', marginBottom: 10, textAlign:'center' },
+    activitiesTitle: { fontSize: 18, fontWeight: 'bold', color: '#555', marginBottom: 10 },
     activityItem: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#eee', alignItems: 'center' },
     activityName: { fontSize: 16, color: '#333' },
-    activityDetail: { fontSize: 14, color: 'gray' },
+    // NOVO
+    detailsContainer: { flexDirection: 'row', alignItems: 'center', gap: 15 },
+    activityDetail: { fontSize: 14, color: 'gray', fontWeight: '500' },
     noActivityText: { textAlign: 'center', color: 'gray', fontSize: 16, paddingVertical: 20 },
     closeButton: { backgroundColor: themeColor, borderRadius: 10, padding: 15, marginTop: 20, alignItems: 'center' },
     closeButtonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },

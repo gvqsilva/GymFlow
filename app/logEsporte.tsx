@@ -1,14 +1,17 @@
 // app/logEsporte.tsx
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, Pressable, Alert, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Pressable, ScrollView } from 'react-native';
 import { useLocalSearchParams, Stack, useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { MET_DATA } from '../constants/metData';
-import Toast from 'react-native-toast-message'; // 1. IMPORTE O TOAST AQUI
+// ALTERADO: Importa também os valores padrão
+import { MET_DATA, DEFAULT_MET_VALUES } from '../constants/metData';
+import Toast from 'react-native-toast-message';
 
 const themeColor = '#5a4fcf';
 const PROFILE_KEY = 'userProfile';
+
+const SWIMMING_MET_VALUE = 7.0;
 
 const getLocalDateString = (date = new Date()) => {
     const year = date.getFullYear();
@@ -26,6 +29,11 @@ export default function LogSportScreen() {
     const [notes, setNotes] = useState('');
     const [userWeight, setUserWeight] = useState(0);
     const [estimatedCalories, setEstimatedCalories] = useState(0);
+    const [distance, setDistance] = useState('');
+    const [yards, setYards] = useState('');
+
+    const isSwimming = esporte?.toLowerCase() === 'natação';
+    const isAmericanFootball = esporte?.toLowerCase() === 'futebol americano';
 
     useFocusEffect(
         React.useCallback(() => {
@@ -41,43 +49,67 @@ export default function LogSportScreen() {
     );
 
     useEffect(() => {
-        if (duration && intensity && userWeight > 0 && esporte) {
-            const durationNum = parseInt(duration, 10);
-            const metValue = MET_DATA[esporte]?.[intensity] || 0;
+        const durationNum = parseInt(duration, 10) || 0;
+        const weightNum = userWeight || 0;
+        
+        let calories = 0;
 
-            if (durationNum > 0 && metValue > 0) {
-                const calories = (metValue * userWeight * 3.5) / 200 * durationNum;
-                setEstimatedCalories(Math.round(calories));
+        if (weightNum > 0 && durationNum > 0) {
+            if (isSwimming) {
+                const durationInHours = durationNum / 60;
+                calories = SWIMMING_MET_VALUE * weightNum * durationInHours;
             } else {
-                setEstimatedCalories(0);
+                if (intensity) {
+                    // ALTERADO: Lógica de Fallback
+                    // 1. Tenta encontrar os valores MET para o desporto específico.
+                    // 2. Se não encontrar, usa os valores MET padrão.
+                    const sportMetValues = MET_DATA[esporte] || DEFAULT_MET_VALUES;
+                    const metValue = sportMetValues[intensity] || 0;
+                    
+                    if (metValue > 0) {
+                        calories = (metValue * weightNum * 3.5) / 200 * durationNum;
+                    }
+                }
             }
-        } else {
-            setEstimatedCalories(0);
         }
+        
+        setEstimatedCalories(Math.round(calories));
+        
     }, [duration, intensity, userWeight, esporte]);
 
     const handleSaveActivity = async () => {
-        if (!duration || !intensity) {
-            // 2. SUBSTITUA O ALERT DE ERRO
-            Toast.show({
-                type: 'error',
-                text1: 'Campos Obrigatórios',
-                text2: 'Por favor, preencha a duração e a intensidade.'
-            });
+        const commonFieldsMissing = !duration;
+        const sportSpecificFieldsMissing = !isSwimming && !intensity;
+
+        if (commonFieldsMissing || sportSpecificFieldsMissing) {
+            let message = 'Por favor, preencha a Duração e a Intensidade.';
+            if (isSwimming) message = 'Por favor, preencha a Duração.';
+            Toast.show({ type: 'error', text1: 'Campos Incompletos', text2: message });
             return;
         }
 
         try {
+            const details: any = {
+                duration: parseInt(duration, 10),
+                notes,
+                calories: estimatedCalories,
+            };
+
+            if (!isSwimming) {
+                details.intensity = intensity;
+            }
+            if (isSwimming && distance) {
+                details.distance = parseInt(distance, 10);
+            }
+            if (isAmericanFootball && yards) {
+                details.yards = parseInt(yards, 10) || 0;
+            }
+
             const newActivity = {
                 id: `activity_${Date.now()}_${Math.random()}`,
                 date: dateParam || getLocalDateString(),
                 category: esporte,
-                details: {
-                    duration: parseInt(duration, 10),
-                    intensity,
-                    notes,
-                    calories: estimatedCalories,
-                }
+                details,
             };
 
             const historyJSON = await AsyncStorage.getItem('workoutHistory');
@@ -85,21 +117,11 @@ export default function LogSportScreen() {
             history.push(newActivity);
             await AsyncStorage.setItem('workoutHistory', JSON.stringify(history));
 
-            // 3. SUBSTITUA O ALERT DE SUCESSO
-            Toast.show({
-                type: 'success',
-                text1: 'Sucesso!',
-                text2: `${esporte} registado com sucesso.`
-            });
+            Toast.show({ type: 'success', text1: 'Sucesso!', text2: `${esporte} registado com sucesso.` });
             router.back();
 
         } catch (e) {
-            // 4. SUBSTITUA O ALERT DE ERRO NO CATCH
-            Toast.show({
-                type: 'error',
-                text1: 'Erro',
-                text2: 'Não foi possível registar a atividade.'
-            });
+            Toast.show({ type: 'error', text1: 'Erro', text2: 'Não foi possível registar a atividade.' });
             console.error("Failed to save activity", e);
         }
     };
@@ -109,53 +131,82 @@ export default function LogSportScreen() {
             <Stack.Screen options={{ title: esporte }} />
             
             <View style={styles.card}>
+                
                 <Text style={styles.label}>Duração (minutos)</Text>
                 <TextInput
                     style={styles.input}
                     keyboardType="number-pad"
                     value={duration}
                     onChangeText={setDuration}
-                    placeholder="Ex: 90"
+                    placeholder="Ex: 60"
                 />
 
-                <Text style={styles.label}>Intensidade</Text>
-                <View style={styles.intensityContainer}>
-                    {['Leve', 'Moderada', 'Alta'].map((level) => (
-                        <Pressable 
-                            key={level}
-                            style={[
-                                styles.intensityButton, 
-                                intensity === level && styles.intensitySelected
-                            ]}
-                            onPress={() => setIntensity(level as any)}
-                        >
-                            <Text style={[
-                                styles.intensityText,
-                                intensity === level && styles.intensityTextSelected
-                            ]}>{level}</Text>
-                        </Pressable>
-                    ))}
-                </View>
+                {isSwimming && (
+                    <>
+                        <Text style={styles.label}>Metros Nadados (opcional)</Text>
+                        <TextInput
+                            style={styles.input}
+                            keyboardType="number-pad"
+                            value={distance}
+                            onChangeText={setDistance}
+                            placeholder="Ex: 1500 (métrica de performance)"
+                        />
+                    </>
+                )}
+
+                {isAmericanFootball && (
+                    <>
+                        <Text style={styles.label}>Jardas Percorridas</Text>
+                        <TextInput
+                            style={styles.input}
+                            keyboardType="number-pad"
+                            value={yards}
+                            onChangeText={setYards}
+                            placeholder="Ex: 80"
+                        />
+                    </>
+                )}
+
+                {!isSwimming && (
+                    <>
+                        <Text style={styles.label}>Intensidade</Text>
+                        <View style={styles.intensityContainer}>
+                            {['Leve', 'Moderada', 'Alta'].map((level) => (
+                                <Pressable 
+                                    key={level}
+                                    style={[ styles.intensityButton, intensity === level && styles.intensitySelected ]}
+                                    onPress={() => setIntensity(level as any)}
+                                >
+                                    <Text style={[ styles.intensityText, intensity === level && styles.intensityTextSelected ]}>{level}</Text>
+                                </Pressable>
+                            ))}
+                        </View>
+                    </>
+                )}
 
                 {estimatedCalories > 0 && (
                     <View style={styles.caloriesContainer}>
-                        <Text style={styles.caloriesLabel}>Gasto Calórico Estimado: </Text>
-                        <Text style={styles.caloriesValue}>{estimatedCalories} kcal </Text>
+                        <Text style={styles.caloriesLabel}>Gasto Calórico Estimado:</Text>
+                        <Text style={styles.caloriesValue}>{estimatedCalories} kcal</Text>
                     </View>
                 )}
 
-                <Text style={styles.label}>Notas (opcional) </Text>
+                <Text style={styles.label}>Notas (opcional)</Text>
                 <TextInput
                     style={[styles.input, styles.textArea]}
                     value={notes}
                     onChangeText={setNotes}
-                    placeholder="Ex: Jogo amigável, treino de ataque..."
+                    placeholder={
+                        isSwimming ? "Ex: Treino de crawl, piscina de 25m..." :
+                        isAmericanFootball ? "Ex: Treino de passes, jogo amigável..." :
+                        "Ex: Jogo amigável, treino de ataque..."
+                    }
                     multiline
                 />
             </View>
 
             <Pressable style={styles.saveButton} onPress={handleSaveActivity}>
-                <Text style={styles.saveButtonText}>Registar Atividade </Text>
+                <Text style={styles.saveButtonText}>Registar Atividade</Text>
             </Pressable>
         </ScrollView>
     );
