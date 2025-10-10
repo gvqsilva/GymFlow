@@ -27,7 +27,6 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => <Ionicons size={28} name={focused ? "barbell" : "barbell-outline"} color={color} />,
         }}
       />
-      {/* ABA "HISTÓRICO" REMOVIDA */}
       <Tabs.Screen
         name="config"
         options={{

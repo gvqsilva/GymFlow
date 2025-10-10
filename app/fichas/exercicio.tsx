@@ -1,33 +1,64 @@
 // app/fichas/exercicio.tsx
 
 import React, { useMemo, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Image, ScrollView, ActivityIndicator, Dimensions } from 'react-native'; // NOVO: Importa Dimensions
 import { useLocalSearchParams, Stack, useFocusEffect } from 'expo-router';
 import { useWorkouts } from '../../hooks/useWorkouts';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LineChart } from 'react-native-chart-kit'; // NOVO: Importa LineChart
 
 const themeColor = '#5a4fcf';
+const screenWidth = Dimensions.get("window").width; // Obtém a largura do ecrã
 
-// Gráfico de barras simples e robusto
+// ⚠️ NOVO GRÁFICO DE LINHAS ⚠️
 const EvolutionChart = ({ data }: { data: { labels: string[], values: number[] } | null }) => {
     if (!data || data.values.length === 0) {
         return <Text style={styles.noDataText}>Registe o peso para ver o gráfico de evolução.</Text>;
     }
 
-    const maxValue = Math.max(...data.values, 1);
+    // Estrutura de dados exigida pelo react-native-chart-kit
+    const chartData = {
+        labels: data.labels,
+        datasets: [
+            {
+                data: data.values,
+                color: (opacity = 1) => `rgba(90, 79, 207, ${opacity})`, // themeColor em RGB
+                strokeWidth: 3,
+            }
+        ]
+    };
 
     return (
-        <View style={styles.chartBody}>
-            {data.values.map((value, index) => (
-                <View key={index} style={styles.barWrapper}>
-                    <View style={styles.barItem}>
-                        <Text style={styles.barValue}>{value}kg</Text>
-                        <View style={[styles.bar, { height: `${(value / maxValue) * 100}%` }]} />
-                    </View>
-                    <Text style={styles.barLabel}>{data.labels[index]}</Text>
-                </View>
-            ))}
+        <View style={styles.chartContainer}>
+            <LineChart
+                data={chartData}
+                width={screenWidth - 80} // Largura do ecrã menos o padding do container (20*2 + margens)
+                height={220}
+                yAxisSuffix="kg"
+                yAxisInterval={1}
+                chartConfig={{
+                    backgroundColor: '#ffffff',
+                    backgroundGradientFrom: '#ffffff',
+                    backgroundGradientTo: '#ffffff',
+                    decimalPlaces: 0,
+                    color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                    labelColor: (opacity = 1) => `rgba(100, 100, 100, ${opacity})`,
+                    style: {
+                        borderRadius: 16
+                    },
+                    propsForDots: {
+                        r: "5",
+                        strokeWidth: "2",
+                        stroke: themeColor
+                    }
+                }}
+                bezier // Curvas suaves
+                style={{
+                    marginVertical: 8,
+                    borderRadius: 16,
+                }}
+            />
         </View>
     );
 };
@@ -99,8 +130,8 @@ export default function ExerciseDetailScreen() {
                 <View style={styles.header}>
                      <Text style={styles.headerText}>Músculo: {exercise.muscle} </Text>
                      <View style={styles.detailsRow}>
-                        <Text style={styles.headerText}>Série: {exercise.series} </Text>
-                        <Text style={styles.headerText}>Reps: {exercise.reps} </Text>
+                         <Text style={styles.headerText}>Série: {exercise.series} </Text>
+                         <Text style={styles.headerText}>Reps: {exercise.reps} </Text>
                      </View>
                      {exercise.obs ? <Text style={styles.headerText}>Obs: {exercise.obs}</Text> : null}
                 </View>
@@ -130,7 +161,7 @@ export default function ExerciseDetailScreen() {
             </ScrollView>
         </SafeAreaView>
     );
-};
+}
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#f0f2f5' },
@@ -167,41 +198,9 @@ const styles = StyleSheet.create({
     gif: { width: '100%', height: '100%' },
     noDataText: { color: 'gray', fontStyle: 'italic', textAlign: 'center', paddingVertical: 20 },
     prText: { marginTop: 20, fontSize: 16, fontWeight: 'bold', color: themeColor, textAlign: 'center' },
-    // Estilos para o gráfico
-    chartBody: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        alignItems: 'flex-end',
-        height: 150,
-        width: '100%',
-        // A linha foi removida daqui
-    },
-    barWrapper: {
-        flex: 1,
+    // NOVO: Estilos para o LineChart (Ocupa o lugar dos antigos estilos de barras)
+    chartContainer: {
         alignItems: 'center',
-        marginHorizontal: 5,
-    },
-    barItem: {
-        flex: 1,
-        width: '100%',
-        alignItems: 'center',
-        justifyContent: 'flex-end',
-    },
-    barValue: {
-        fontSize: 12,
-        fontWeight: 'bold',
-        color: '#333',
-        marginBottom: 4,
-    },
-    bar: {
-        width: '80%',
-        backgroundColor: themeColor,
-        borderRadius: 4,
-    },
-    barLabel: {
-        fontSize: 12,
-        color: 'gray',
-        marginTop: 6,
+        paddingHorizontal: 5, 
     },
 });
-
