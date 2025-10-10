@@ -27,14 +27,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => <Ionicons size={28} name={focused ? "barbell" : "barbell-outline"} color={color} />,
         }}
       />
-      {/* NOVA ABA "HISTÓRICO" ADICIONADA */}
-      <Tabs.Screen
-        name="historico"
-        options={{
-          title: 'Histórico',
-          tabBarIcon: ({ color, focused }) => <Ionicons size={28} name={focused ? "calendar" : "calendar-outline"} color={color} />,
-        }}
-      />
+      {/* ABA "HISTÓRICO" REMOVIDA */}
       <Tabs.Screen
         name="config"
         options={{
@@ -45,4 +38,3 @@ export default function TabLayout() {
     </Tabs>
   );
 }
-

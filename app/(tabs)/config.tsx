@@ -83,14 +83,6 @@ export default function SettingsScreen() {
                     </View>
                 </Pressable>
 
-                {/* NOVO CARD PARA GERIR SUPLEMENTOS */}
-                <Pressable style={styles.linkCard} onPress={() => router.push('/gerir-suplementos')}>
-                    <View>
-                        <Text style={styles.cardTitle}>Gerir Suplementos</Text>
-                        <Text style={styles.cardSubtitle}>Adicione, edite ou apague suplementos</Text>
-                    </View>
-                </Pressable>
-
                 <View style={styles.card}>
                     <View>
                         <Text style={styles.cardTitle}>Lembrete de Creatina</Text>
@@ -115,18 +107,24 @@ export default function SettingsScreen() {
                     </View>
                 </Pressable>
 
-                {/* NOVO CARD PARA GERIR ESPORTES */}
                 <Pressable style={styles.linkCard} onPress={() => router.push('/gerir-esportes')}>
                     <View>
-                        <Text style={styles.cardTitle}>Gerenciar Esportes</Text>
+                        <Text style={styles.cardTitle}>Gerir Esportes</Text>
                         <Text style={styles.cardSubtitle}>Adicione ou remova modalidades</Text>
+                    </View>
+                </Pressable>
+
+                <Pressable style={styles.linkCard} onPress={() => router.push('/gerir-suplementos')}>
+                    <View>
+                        <Text style={styles.cardTitle}>Gerir Suplementos</Text>
+                        <Text style={styles.cardSubtitle}>Adicione, edite ou apague suplementos</Text>
                     </View>
                 </Pressable>
                 
                 <Pressable style={styles.linkCard} onPress={() => router.push('/gestao-dados')}>
                     <View>
-                        <Text style={styles.cardTitle}>Gestão de Dados</Text>
-                        <Text style={styles.cardSubtitle}>Apague o seu histórico de atividades</Text>
+                        <Text style={styles.cardTitle}>Histórico e Dados</Text>
+                        <Text style={styles.cardSubtitle}>Consulte e apague o seu histórico</Text>
                     </View>
                 </Pressable>
                 
