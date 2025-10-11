@@ -27,6 +27,14 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => <Ionicons size={28} name={focused ? "barbell" : "barbell-outline"} color={color} />,
         }}
       />
+      {/* ABA DE ALIMENTAÇÃO */}
+      <Tabs.Screen
+        name="historico" // Corresponde ao ficheiro historico.tsx
+        options={{
+          title: 'Alimentação',
+          tabBarIcon: ({ color, focused }) => <Ionicons size={28} name={focused ? "restaurant" : "restaurant-outline"} color={color} />, 
+        }}
+      />
       <Tabs.Screen
         name="config"
         options={{
