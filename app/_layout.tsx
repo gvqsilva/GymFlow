@@ -2,13 +2,12 @@
 
 import { Stack } from 'expo-router';
 import Toast from 'react-native-toast-message';
-import { SportsProvider } from '../context/SportsProvider'; // 1. IMPORTE O PROVEDOR
+import { SportsProvider } from '../context/SportsProvider';
 
 const themeColor = '#5a4fcf';
 
 export default function RootLayout() {
   return (
-    // 2. ENVOLVA TODA A APLICAÇÃO COM O PROVEDOR
     <SportsProvider>
       <Stack
         screenOptions={{
@@ -28,6 +27,8 @@ export default function RootLayout() {
         <Stack.Screen name="exercicio-modal" options={{ presentation: 'modal', title: 'Exercício' }} />
         <Stack.Screen name="ficha-modal" options={{ presentation: 'modal', title: 'Nova Ficha' }} />
         <Stack.Screen name="perfil-modal" options={{ presentation: 'modal', title: 'Meu Perfil' }} />
+
+        {/* ✅ CORRIGIDO: Adicione as duas linhas abaixo para registar os novos ecrãs */}
         <Stack.Screen name="gerir-suplementos" options={{ title: 'Gerir Suplementos' }} />
         <Stack.Screen name="suplemento-modal" options={{ presentation: 'modal', title: 'Suplemento' }} />
       </Stack>
