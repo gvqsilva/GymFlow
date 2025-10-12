@@ -15,8 +15,8 @@ import {
 } from 'react-native';
 import { Stack } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Toast from 'react-native-toast-message';
 
-// Importa a base de dados local
 import FoodDatabase from '../../data/foodData.json';
 
 const themeColor = '#5a4fcf';
@@ -39,7 +39,7 @@ interface FoodItem {
   protein: number;
   carbs: number;
   fat: number;
-  unit_g_conversion?: number;
+  measures?: Record<string, number>; // Medidas de conversão
 }
 
 interface FoodEntry {
@@ -58,22 +58,10 @@ interface GroupedMealData {
 
 // --- FIM DAS INTERFACES ---
 
-// 🟢 NOVO: Cria uma lista "plana" com todos os alimentos de todas as categorias
 const allFoods: FoodItem[] = Object.values(FoodDatabase).flat();
-
 const getLocalDateString = (date = new Date()) => date.toISOString().split('T')[0];
 
-const ResultMacroText = ({
-  label,
-  value,
-  unit,
-  emoji,
-}: {
-  label: string;
-  value: number | undefined | null;
-  unit: string;
-  emoji: string;
-}) => (
+const ResultMacroText = ({ label, value, unit, emoji }: { label: string, value: number | undefined | null, unit: string, emoji: string }) => (
   <View style={styles.macroRow}>
     <Text style={styles.macroLabel}>
       <Text style={styles.macroEmoji}>{emoji} </Text>
@@ -83,7 +71,7 @@ const ResultMacroText = ({
   </View>
 );
 
-const processDailyData = (entries: FoodEntry[], today: string) => {
+const processDailyData = (entries: FoodEntry[], today: string): { totalCalories: number; groupedMeals: GroupedMealData[] } => {
   const todayEntries = entries.filter(entry => entry.date === today);
   let totalCalories = 0;
 
@@ -101,7 +89,9 @@ const processDailyData = (entries: FoodEntry[], today: string) => {
     }
   });
 
-  const groupedMeals = Array.from(mealMap.values()).filter(m => m.items.length > 0);
+  const groupedMeals = Array.from(mealMap.values())
+    .filter(meal => meal.items.length > 0)
+    .map(meal => ({ ...meal, totalCalories: Math.round(meal.totalCalories) }));
 
   return { totalCalories: Math.round(totalCalories), groupedMeals };
 };
@@ -114,7 +104,6 @@ const getDailySummary = async (
     const today = getLocalDateString();
     const existingEntriesJSON = await AsyncStorage.getItem('foodHistory');
     const existingEntries: FoodEntry[] = existingEntriesJSON ? JSON.parse(existingEntriesJSON) : [];
-
     const { totalCalories, groupedMeals } = processDailyData(existingEntries, today);
     setDailyTotalCalories(totalCalories);
     setDailyMealsData(groupedMeals);
@@ -123,14 +112,9 @@ const getDailySummary = async (
   }
 };
 
-// ✅ CORRIGIDO: Componente MealDetail definido antes de ser usado
 const MealDetail = ({ mealData }: { mealData: GroupedMealData | undefined }) => {
   if (!mealData || mealData.items.length === 0) {
-    return (
-      <Text style={styles.noItemsText}>
-        Nenhum item registrado para esta refeição hoje.
-      </Text>
-    );
+    return <Text style={styles.noItemsText}>Nenhum item registrado para esta refeição hoje.</Text>;
   }
 
   return (
@@ -138,13 +122,10 @@ const MealDetail = ({ mealData }: { mealData: GroupedMealData | undefined }) => 
       <Text style={styles.mealDetailTitleText}>
         Detalhes de {mealData.mealType} ({mealData.totalCalories} Kcal)
       </Text>
-
       {mealData.items.map(item => (
         <View key={item.id} style={styles.mealItemBox}>
           <Text style={styles.itemDescription}>{item.description}</Text>
-          <View style={styles.mealItemMacros}>
-            <Text style={styles.itemKcal}>{Math.round(item.data.calories)} Kcal</Text>
-          </View>
+          <Text style={styles.itemKcal}>{Math.round(item.data.calories)} Kcal</Text>
         </View>
       ))}
     </View>
@@ -159,7 +140,6 @@ export default function HistoricoScreen() {
   const [selectedMeal, setSelectedMeal] = useState<MealType>('Café');
   const [dailyMealsData, setDailyMealsData] = useState<GroupedMealData[]>([]);
   const [viewingMeal, setViewingMeal] = useState<MealType>('Café');
-
   const [suggestions, setSuggestions] = useState<FoodItem[]>([]);
   const [isInputFocused, setIsInputFocused] = useState(false);
 
@@ -181,31 +161,25 @@ export default function HistoricoScreen() {
         description,
         data: result,
       };
-
       const existingEntriesJSON = await AsyncStorage.getItem('foodHistory');
       const existingEntries: FoodEntry[] = existingEntriesJSON ? JSON.parse(existingEntriesJSON) : [];
       existingEntries.unshift(newEntry);
-
       await AsyncStorage.setItem('foodHistory', JSON.stringify(existingEntries));
     } catch (e) {
       console.error('Falha ao salvar histórico.', e);
-      Alert.alert('Erro', 'Não foi possível guardar o registro localmente.');
+      Toast.show({ type: 'error', text1: 'Erro ao Salvar', text2: 'Não foi possível guardar o registro.' });
     }
   };
 
-  const cleanNameForSearch = (name: string) => name.toUpperCase().replace(/[^A-Z]/g, '');
+  const cleanNameForSearch = (name: string) => name.toUpperCase().replace(/[^A-ZÀ-Ú]/g, '');
 
   const handleQueryChange = (text: string) => {
     setQuery(text);
-    
-    const quantityMatch = text.match(/^(\d+\s*(g|ml|fatias|unidades)?\s*(de)?\s*)/i);
+    const quantityMatch = text.match(/^(\d+\s*(g|ml|fatias|unidades|colher\s*de\s*sopa)?\s*(de)?\s*)/i);
     const foodNamePart = quantityMatch ? text.substring(quantityMatch[0].length) : text;
-    
     if (foodNamePart.trim().length > 1) {
       const searchName = cleanNameForSearch(foodNamePart);
-      const filteredFoods = allFoods.filter(item =>
-        cleanNameForSearch(item.name).includes(searchName)
-      );
+      const filteredFoods = allFoods.filter(item => cleanNameForSearch(item.name).includes(searchName));
       setSuggestions(filteredFoods.slice(0, 5));
     } else {
       setSuggestions([]);
@@ -213,59 +187,87 @@ export default function HistoricoScreen() {
   };
 
   const onSuggestionPress = (foodName: string) => {
-    const quantityMatch = query.match(/^(\d+\s*(g|ml|fatias|unidades)?\s*(de)?\s*)/i);
+    const quantityMatch = query.match(/^(\d+\s*(g|ml|fatias|unidades|colher\s*de\s*sopa)?\s*(de)?\s*)/i);
     const quantityPart = quantityMatch ? quantityMatch[0] : '';
-    
     setQuery(`${quantityPart}${foodName} `);
     setSuggestions([]);
   };
 
   const handleSearch = async () => {
     if (!query.trim()) {
-      Alert.alert('Erro', 'Digite a quantidade e o alimento.');
+      Toast.show({ type: 'error', text1: 'Campo Vazio' });
       return;
     }
-
     setIsLoading(true);
     setLastResult(null);
 
-    const quantityMatch = query.trim().match(/(\d+)\s*(g|ml)/i);
-    const quantityInGrams = quantityMatch ? parseFloat(quantityMatch[1]) : 100;
+    const knownUnits: Record<string, string[]> = {
+      'g': ['G', 'GRAMA', 'GRAMAS'],
+      'ml': ['ML', 'MLS'],
+      'COLHER DE SOPA': ['COLHER DE SOPA', 'COLHERES DE SOPA', 'COLHER SOPA'],
+      'UNIDADE': ['UNIDADE', 'UNIDADES', 'UNID'],
+      'FATIA': ['FATIA', 'FATIAS'],
+    };
 
-    const rawFoodName = query.replace(quantityMatch ? quantityMatch[0] : '', '').replace(/de\s*/i, '').trim();
-    const finalSearchTerm = cleanNameForSearch(rawFoodName.length > 3 ? rawFoodName : query);
+    let upperQuery = query.toUpperCase();
+    let parsedUnit: string | null = null;
+    let foodNamePart = upperQuery;
+    let quantity = 1;
 
-    const foundFood = allFoods.find(item =>
-      cleanNameForSearch(item.name).includes(finalSearchTerm)
-    );
+    const quantityMatch = upperQuery.match(/^(\d+)/);
+    if (quantityMatch) {
+      quantity = parseInt(quantityMatch[1], 10);
+    }
+    
+    for (const unit in knownUnits) {
+      for (const keyword of knownUnits[unit]) {
+        if (upperQuery.includes(keyword)) {
+          parsedUnit = unit;
+          foodNamePart = upperQuery.replace(keyword, '').replace(String(quantity), '');
+          break;
+        }
+      }
+      if (parsedUnit) break;
+    }
+
+    const finalSearchTerm = cleanNameForSearch(foodNamePart);
+    const foundFood = allFoods.find(item => cleanNameForSearch(item.name).includes(finalSearchTerm));
 
     if (!foundFood) {
-      Alert.alert('Não encontrado', `Alimento "${rawFoodName}" não encontrado.`);
+      Toast.show({ type: 'error', text1: 'Não Encontrado', text2: `"${foodNamePart.trim()}" não está na base de dados.` });
       setIsLoading(false);
       return;
     }
 
-    const factor = quantityInGrams / 100;
-    const result: NutritionResult = {
-      calories: foundFood.calories * factor,
-      protein: foundFood.protein * factor,
-      carbs: foundFood.carbs * factor,
-      fat: foundFood.fat * factor,
-    };
+    let finalGrams = 0;
+    if (parsedUnit === 'g' || parsedUnit === 'ml') {
+      finalGrams = quantity;
+    } else if (parsedUnit && foundFood.measures && (foundFood.measures as any)[parsedUnit]) {
+      finalGrams = quantity * (foundFood.measures as any)[parsedUnit];
+    } else if (!parsedUnit && foundFood.measures?.['UNIDADE']) {
+      finalGrams = quantity * foundFood.measures['UNIDADE'];
+    } else {
+      finalGrams = 100;
+    }
 
+    const factor = finalGrams / 100;
     const finalResult: NutritionResult = {
-      calories: Math.round(result.calories),
-      protein: parseFloat(result.protein.toFixed(1)),
-      carbs: parseFloat(result.carbs.toFixed(1)),
-      fat: parseFloat(result.fat.toFixed(1)),
+      calories: Math.round(foundFood.calories * factor),
+      protein: parseFloat((foundFood.protein * factor).toFixed(1)),
+      carbs: parseFloat((foundFood.carbs * factor).toFixed(1)),
+      fat: parseFloat((foundFood.fat * factor).toFixed(1)),
     };
-
+    
     setLastResult(finalResult);
     await saveFoodEntry(query, finalResult, selectedMeal);
     await loadDailySummary();
     setViewingMeal(selectedMeal);
 
-    Alert.alert('Sucesso!', `${finalResult.calories} Kcal registradas em ${selectedMeal}!`);
+    Toast.show({
+        type: 'success',
+        text1: 'Refeição Registada!',
+        text2: `${finalResult.calories} Kcal adicionadas em ${selectedMeal}.`
+    });
     setQuery('');
     setIsLoading(false);
   };
@@ -360,7 +362,7 @@ export default function HistoricoScreen() {
                 A aplicação usa a base de dados local.
               </Text>
               <Text style={styles.infoTextBold}>
-                Formato: [Quantidade em g/ml] [Nome do Alimento]
+                Formato: [Qtd] [Unidade] [Alimento]
               </Text>
             </View>
           )}
@@ -493,7 +495,6 @@ const styles = StyleSheet.create({
   },
   summaryTitle: { fontSize: 16, color: '#666', marginBottom: 5 },
   summaryKcal: { fontSize: 32, fontWeight: 'bold', color: themeColor },
-  // 🟢 ESTILOS DA SEÇÃO DE DETALHES (ADICIONADOS)
   mealDetailContainer: {
     marginTop: 10,
     padding: 15,
@@ -513,11 +514,6 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     marginBottom: 10,
   },
-  mealItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 5,
-  },
   mealItemBox: {
     backgroundColor: '#f9f9f9',
     borderRadius: 8,
@@ -532,13 +528,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
     flex: 1,
-    paddingRight: 10, 
-  },
-  itemKcal: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: themeColor,
-    marginLeft: 10,
   },
   mealItemMacros: {
     flexDirection: 'row',
@@ -551,6 +540,7 @@ const styles = StyleSheet.create({
     color: themeColor,
     marginRight: 10,
   },
+  mealItemMacroText: { fontSize: 12, color: '#666', marginLeft: 5 },
   noItemsText: {
     textAlign: 'center',
     fontSize: 15,
@@ -559,7 +549,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 10,
   },
-  // 🟢 ESTILOS DE MACROS (ADICIONADOS)
   macroRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -570,7 +559,6 @@ const styles = StyleSheet.create({
   macroEmoji: { fontSize: 16, marginRight: 5 },
   macroTextBold: { fontWeight: 'bold', color: '#333' },
   macroValue: { fontSize: 16, fontWeight: 'bold', color: themeColor },
-  // 🟢 NOVOS ESTILOS PARA O AUTOCOMPLETE
   suggestionsList: {
     maxHeight: 150,
     backgroundColor: 'white',
@@ -607,10 +595,6 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     padding: 15,
     elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
   },
   mealHeader: {
     flexDirection: 'row',
@@ -630,6 +614,16 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: themeColor,
+  },
+  mealItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 5,
+  },
+  itemKcal: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
   },
   noDataText: {
     textAlign: 'center',
