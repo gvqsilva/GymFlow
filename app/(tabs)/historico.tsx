@@ -8,19 +8,21 @@ import {
   SafeAreaView,
   TextInput,
   Pressable,
+  Alert,
   ActivityIndicator,
   ScrollView,
+  FlatList,
 } from 'react-native';
 import { Stack } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Toast from 'react-native-toast-message';
 
-// 🟢 Importa a base de dados local
+// Importa a base de dados local
 import FoodDatabase from '../../data/foodData.json';
 
 const themeColor = '#5a4fcf';
 
 // --- INTERFACES E TIPOS ---
+
 type MealType = 'Café' | 'Almoço' | 'Jantar' | 'Lanche';
 const MEAL_TYPES: MealType[] = ['Café', 'Almoço', 'Jantar', 'Lanche'];
 
@@ -54,7 +56,11 @@ interface GroupedMealData {
   items: FoodEntry[];
 }
 
-// --- FUNÇÕES AUXILIARES ---
+// --- FIM DAS INTERFACES ---
+
+// 🟢 NOVO: Cria uma lista "plana" com todos os alimentos de todas as categorias
+const allFoods: FoodItem[] = Object.values(FoodDatabase).flat();
+
 const getLocalDateString = (date = new Date()) => date.toISOString().split('T')[0];
 
 const ResultMacroText = ({
@@ -73,7 +79,7 @@ const ResultMacroText = ({
       <Text style={styles.macroEmoji}>{emoji} </Text>
       <Text style={styles.macroTextBold}>{label}:</Text>
     </Text>
-    <Text style={styles.macroValue}>{value || 0} {unit}</Text>
+    <Text style={styles.macroValue}>{value ? value.toFixed(1) : '0.0'} {unit}</Text>
   </View>
 );
 
@@ -82,7 +88,9 @@ const processDailyData = (entries: FoodEntry[], today: string) => {
   let totalCalories = 0;
 
   const mealMap = new Map<MealType, GroupedMealData>();
-  MEAL_TYPES.forEach(type => mealMap.set(type, { mealType: type, totalCalories: 0, items: [] }));
+  MEAL_TYPES.forEach(type => {
+    mealMap.set(type, { mealType: type, totalCalories: 0, items: [] });
+  });
 
   todayEntries.forEach(entry => {
     totalCalories += entry.data.calories;
@@ -106,19 +114,23 @@ const getDailySummary = async (
     const today = getLocalDateString();
     const existingEntriesJSON = await AsyncStorage.getItem('foodHistory');
     const existingEntries: FoodEntry[] = existingEntriesJSON ? JSON.parse(existingEntriesJSON) : [];
+
     const { totalCalories, groupedMeals } = processDailyData(existingEntries, today);
     setDailyTotalCalories(totalCalories);
     setDailyMealsData(groupedMeals);
   } catch (e) {
-    console.error('Erro ao carregar resumo diário', e);
-    Toast.show({ type: 'error', text1: 'Erro', text2: 'Não foi possível carregar histórico.', position: 'bottom' });
+    console.error('Falha ao carregar o resumo diário e detalhes.', e);
   }
 };
 
-// --- COMPONENTE DE DETALHES ---
+// ✅ CORRIGIDO: Componente MealDetail definido antes de ser usado
 const MealDetail = ({ mealData }: { mealData: GroupedMealData | undefined }) => {
   if (!mealData || mealData.items.length === 0) {
-    return <Text style={styles.noItemsText}>Nenhum item registrado para esta refeição hoje.</Text>;
+    return (
+      <Text style={styles.noItemsText}>
+        Nenhum item registrado para esta refeição hoje.
+      </Text>
+    );
   }
 
   return (
@@ -129,12 +141,9 @@ const MealDetail = ({ mealData }: { mealData: GroupedMealData | undefined }) => 
 
       {mealData.items.map(item => (
         <View key={item.id} style={styles.mealItemBox}>
-          <Text style={styles.mealItemDescription}>{item.description}</Text>
+          <Text style={styles.itemDescription}>{item.description}</Text>
           <View style={styles.mealItemMacros}>
-            <Text style={styles.mealItemCalorieText}>{item.data.calories} Kcal</Text>
-            <Text style={styles.mealItemMacroText}>P: {item.data.protein}g</Text>
-            <Text style={styles.mealItemMacroText}>C: {item.data.carbs}g</Text>
-            <Text style={styles.mealItemMacroText}>G: {item.data.fat}g</Text>
+            <Text style={styles.itemKcal}>{Math.round(item.data.calories)} Kcal</Text>
           </View>
         </View>
       ))}
@@ -142,7 +151,6 @@ const MealDetail = ({ mealData }: { mealData: GroupedMealData | undefined }) => 
   );
 };
 
-// --- COMPONENTE PRINCIPAL ---
 export default function HistoricoScreen() {
   const [query, setQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -152,6 +160,9 @@ export default function HistoricoScreen() {
   const [dailyMealsData, setDailyMealsData] = useState<GroupedMealData[]>([]);
   const [viewingMeal, setViewingMeal] = useState<MealType>('Café');
 
+  const [suggestions, setSuggestions] = useState<FoodItem[]>([]);
+  const [isInputFocused, setIsInputFocused] = useState(false);
+
   const loadDailySummary = useCallback(async () => {
     await getDailySummary(setDailyTotalCalories, setDailyMealsData);
   }, []);
@@ -160,7 +171,6 @@ export default function HistoricoScreen() {
     loadDailySummary();
   }, [loadDailySummary]);
 
-  // --- SALVAR ENTRADA ---
   const saveFoodEntry = async (description: string, result: NutritionResult, mealType: MealType) => {
     try {
       const today = getLocalDateString();
@@ -178,17 +188,41 @@ export default function HistoricoScreen() {
 
       await AsyncStorage.setItem('foodHistory', JSON.stringify(existingEntries));
     } catch (e) {
-      console.error('Erro ao salvar histórico', e);
-      Toast.show({ type: 'error', text1: 'Erro', text2: 'Não foi possível salvar entrada.', position: 'bottom' });
+      console.error('Falha ao salvar histórico.', e);
+      Alert.alert('Erro', 'Não foi possível guardar o registro localmente.');
     }
   };
 
-  // --- BUSCA ---
   const cleanNameForSearch = (name: string) => name.toUpperCase().replace(/[^A-Z]/g, '');
+
+  const handleQueryChange = (text: string) => {
+    setQuery(text);
+    
+    const quantityMatch = text.match(/^(\d+\s*(g|ml|fatias|unidades)?\s*(de)?\s*)/i);
+    const foodNamePart = quantityMatch ? text.substring(quantityMatch[0].length) : text;
+    
+    if (foodNamePart.trim().length > 1) {
+      const searchName = cleanNameForSearch(foodNamePart);
+      const filteredFoods = allFoods.filter(item =>
+        cleanNameForSearch(item.name).includes(searchName)
+      );
+      setSuggestions(filteredFoods.slice(0, 5));
+    } else {
+      setSuggestions([]);
+    }
+  };
+
+  const onSuggestionPress = (foodName: string) => {
+    const quantityMatch = query.match(/^(\d+\s*(g|ml|fatias|unidades)?\s*(de)?\s*)/i);
+    const quantityPart = quantityMatch ? quantityMatch[0] : '';
+    
+    setQuery(`${quantityPart}${foodName} `);
+    setSuggestions([]);
+  };
 
   const handleSearch = async () => {
     if (!query.trim()) {
-      Toast.show({ type: 'info', text1: 'Atenção', text2: 'Digite quantidade e alimento (ex: 200g Arroz).', position: 'bottom' });
+      Alert.alert('Erro', 'Digite a quantidade e o alimento.');
       return;
     }
 
@@ -201,12 +235,12 @@ export default function HistoricoScreen() {
     const rawFoodName = query.replace(quantityMatch ? quantityMatch[0] : '', '').replace(/de\s*/i, '').trim();
     const finalSearchTerm = cleanNameForSearch(rawFoodName.length > 3 ? rawFoodName : query);
 
-    const foundFood = (FoodDatabase as FoodItem[]).find(item =>
+    const foundFood = allFoods.find(item =>
       cleanNameForSearch(item.name).includes(finalSearchTerm)
     );
 
     if (!foundFood) {
-      Toast.show({ type: 'error', text1: 'Não encontrado', text2: `Alimento "${rawFoodName}" não encontrado.`, position: 'bottom' });
+      Alert.alert('Não encontrado', `Alimento "${rawFoodName}" não encontrado.`);
       setIsLoading(false);
       return;
     }
@@ -231,7 +265,7 @@ export default function HistoricoScreen() {
     await loadDailySummary();
     setViewingMeal(selectedMeal);
 
-    Toast.show({ type: 'success', text1: 'Registrado', text2: `${finalResult.calories} Kcal em ${selectedMeal}`, position: 'bottom' });
+    Alert.alert('Sucesso!', `${finalResult.calories} Kcal registradas em ${selectedMeal}!`);
     setQuery('');
     setIsLoading(false);
   };
@@ -243,19 +277,17 @@ export default function HistoricoScreen() {
       <Stack.Screen
         options={{
           headerShown: true,
-          title: 'Registrar Alimentação',
+          title: 'Alimentação',
           headerStyle: { backgroundColor: themeColor },
           headerTintColor: '#fff',
         }}
       />
-      <ScrollView style={styles.container}>
-        {/* --- RESUMO DIÁRIO --- */}
+      <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
         <View style={styles.summaryBox}>
           <Text style={styles.summaryTitle}>Total Consumido Hoje</Text>
           <Text style={styles.summaryKcal}>{dailyTotalCalories} Kcal</Text>
         </View>
 
-        {/* --- SELETOR DE REFEIÇÃO --- */}
         <Text style={styles.headerTitle}>Refeição para Registro</Text>
         <View style={styles.mealSelectorContainer}>
           {MEAL_TYPES.map(meal => (
@@ -265,31 +297,54 @@ export default function HistoricoScreen() {
               onPress={() => setSelectedMeal(meal)}
               disabled={isLoading}
             >
-              <Text style={[styles.mealButtonText, selectedMeal === meal && styles.mealButtonTextActive]}>{meal}</Text>
+              <Text style={[styles.mealButtonText, selectedMeal === meal && styles.mealButtonTextActive]}>
+                {meal}
+              </Text>
             </Pressable>
           ))}
         </View>
 
-        {/* --- INPUT E BOTÃO --- */}
         <Text style={[styles.headerTitle, { marginTop: 20 }]}>Adicionar Alimento</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Ex: 200g Frango Grelhado"
-          placeholderTextColor="#999"
-          value={query}
-          onChangeText={setQuery}
-          editable={!isLoading}
-        />
+        
+        <View>
+            <TextInput
+              style={styles.input}
+              placeholder="Ex: 150g de Arroz Branco"
+              placeholderTextColor="#999"
+              value={query}
+              onChangeText={handleQueryChange}
+              editable={!isLoading}
+              onFocus={() => setIsInputFocused(true)}
+              onBlur={() => setTimeout(() => setIsInputFocused(false), 200)}
+            />
+            
+            {isInputFocused && suggestions.length > 0 && (
+                <FlatList
+                    data={suggestions}
+                    keyExtractor={(item) => item.name}
+                    style={styles.suggestionsList}
+                    renderItem={({ item }) => (
+                        <Pressable style={styles.suggestionItem} onPress={() => onSuggestionPress(item.name)}>
+                            <Text style={styles.suggestionText}>{item.name}</Text>
+                        </Pressable>
+                    )}
+                    keyboardShouldPersistTaps="always"
+                />
+            )}
+        </View>
 
         <Pressable
           style={[styles.searchButton, isLoading && styles.searchButtonDisabled]}
           onPress={handleSearch}
           disabled={isLoading}
         >
-          {isLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.buttonText}>Calcular e Registrar Refeição</Text>}
+          {isLoading ? (
+            <ActivityIndicator color="#fff" size="small" />
+          ) : (
+            <Text style={styles.buttonText}>Calcular e Registrar Refeição</Text>
+          )}
         </Pressable>
 
-        {/* --- RESULTADOS --- */}
         <View style={styles.resultsContainer}>
           {lastResult ? (
             <View>
@@ -301,76 +356,285 @@ export default function HistoricoScreen() {
             </View>
           ) : (
             <View>
-              <Text style={styles.infoText}>A aplicação usa a base de dados local. {'\n'}</Text>
-              <Text style={styles.infoTextBold}>Formato: [Quantidade em g/ml] [Nome do Alimento]</Text>
+              <Text style={[styles.infoText, { marginBottom: 10 }]}>
+                A aplicação usa a base de dados local.
+              </Text>
+              <Text style={styles.infoTextBold}>
+                Formato: [Quantidade em g/ml] [Nome do Alimento]
+              </Text>
             </View>
           )}
         </View>
 
-        {/* --- HISTÓRICO --- */}
-        <Text style={[styles.headerTitle, { marginTop: 40 }]}>Histórico de Refeições</Text>
+        <View style={styles.separator} />
+
+        <Text style={styles.listSectionHeader}>Histórico Detalhado do Dia</Text>
         <View style={styles.mealSelectorContainer}>
-          {MEAL_TYPES.map(meal => {
-            const mealData = dailyMealsData.find(m => m.mealType === meal);
-            const totalKcal = mealData ? mealData.totalCalories : 0;
-            return (
-              <Pressable
-                key={`view-${meal}`}
-                style={[styles.viewMealButton, viewingMeal === meal && styles.viewMealButtonActive]}
-                onPress={() => setViewingMeal(meal)}
-              >
-                <Text style={[styles.viewMealButtonText, viewingMeal === meal && styles.mealButtonTextActive]}>
-                  {meal} ({totalKcal} Kcal)
-                </Text>
-              </Pressable>
-            );
-          })}
+          {dailyMealsData.map((meal) => (
+            <Pressable
+              key={`view-${meal.mealType}`}
+              style={[styles.viewMealButton, viewingMeal === meal.mealType && styles.viewMealButtonActive]}
+              onPress={() => setViewingMeal(meal.mealType)}
+            >
+              <Text style={[styles.viewMealButtonText, viewingMeal === meal.mealType && styles.mealButtonTextActive]}>
+                {meal.mealType} ({meal.totalCalories} Kcal)
+              </Text>
+            </Pressable>
+          ))}
         </View>
 
         <MealDetail mealData={currentMealDetails} />
       </ScrollView>
-
-      {/* --- TOAST --- */}
-      <Toast />
     </SafeAreaView>
   );
 }
 
-// --- ESTILOS ---
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#f0f2f5' },
   container: { flex: 1, padding: 20 },
   headerTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10, color: '#333' },
-  input: { backgroundColor: 'white', borderRadius: 10, padding: 15, fontSize: 16, borderWidth: 1, borderColor: '#ddd', marginBottom: 20 },
-  searchButton: { backgroundColor: themeColor, borderRadius: 10, padding: 15, alignItems: 'center', justifyContent: 'center', height: 50, marginTop: 10 },
+  listSectionHeader: { fontSize: 20, fontWeight: 'bold', marginBottom: 15, color: themeColor },
+  input: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 15,
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    marginBottom: 5,
+  },
+  searchButton: {
+    backgroundColor: themeColor,
+    borderRadius: 10,
+    padding: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 50,
+    marginTop: 10,
+  },
+  mealSelectorContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 5,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  mealButton: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderRadius: 8,
+    marginHorizontal: 2,
+    minWidth: '22%',
+  },
+  viewMealButton: {
+    width: '48%',
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderRadius: 8,
+    marginVertical: 3,
+    marginHorizontal: 2,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#eee',
+  },
+  mealButtonActive: {
+    backgroundColor: themeColor,
+    shadowColor: themeColor,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  viewMealButtonActive: {
+    backgroundColor: themeColor,
+    borderColor: themeColor,
+  },
+  mealButtonText: {
+    color: '#333',
+    fontWeight: '600',
+    fontSize: 13,
+    textAlign: 'center',
+  },
+  mealButtonTextActive: { color: 'white', fontWeight: 'bold' },
+  viewMealButtonText: {
+    color: '#333',
+    fontWeight: '600',
+    fontSize: 13,
+    textAlign: 'center',
+  },
   searchButtonDisabled: { opacity: 0.7 },
   buttonText: { color: 'white', fontSize: 18, fontWeight: 'bold' },
-  mealSelectorContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20, backgroundColor: '#fff', borderRadius: 10, padding: 5, borderWidth: 1, borderColor: '#ddd', flexWrap: 'wrap' },
-  mealButton: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 8, marginHorizontal: 2, minWidth: '22%' },
-  mealButtonActive: { backgroundColor: themeColor, shadowColor: themeColor, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 3, elevation: 3 },
-  viewMealButton: { width: '48%', paddingVertical: 10, alignItems: 'center', borderRadius: 8, marginVertical: 3, marginHorizontal: 2, backgroundColor: '#fff', borderWidth: 1, borderColor: '#eee' },
-  viewMealButtonActive: { backgroundColor: themeColor, borderColor: themeColor },
-  mealButtonText: { color: '#333', fontWeight: '600', fontSize: 13, textAlign: 'center' },
-  mealButtonTextActive: { color: '#fff' },
-  viewMealButtonText: { color: '#333', fontWeight: '600', fontSize: 13, textAlign: 'center' },
-  resultsContainer: { marginTop: 30, padding: 15, backgroundColor: 'white', borderRadius: 10, borderLeftWidth: 5, borderLeftColor: themeColor, elevation: 1 },
+  resultsContainer: {
+    marginTop: 30,
+    padding: 15,
+    backgroundColor: 'white',
+    borderRadius: 10,
+    borderLeftWidth: 5,
+    borderLeftColor: themeColor,
+    elevation: 1,
+  },
   resultTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10, color: themeColor },
   infoText: { fontSize: 14, color: '#666', textAlign: 'center' },
   infoTextBold: { fontSize: 16, fontWeight: 'bold', color: '#333', textAlign: 'center', marginTop: 5 },
-  summaryBox: { backgroundColor: 'white', borderRadius: 10, padding: 20, alignItems: 'center', marginBottom: 25, borderBottomWidth: 5, borderBottomColor: themeColor, elevation: 2 },
+  summaryBox: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 20,
+    alignItems: 'center',
+    marginBottom: 25,
+    borderBottomWidth: 5,
+    borderBottomColor: themeColor,
+    elevation: 2,
+  },
   summaryTitle: { fontSize: 16, color: '#666', marginBottom: 5 },
   summaryKcal: { fontSize: 32, fontWeight: 'bold', color: themeColor },
-  mealDetailContainer: { marginTop: 10, padding: 15, backgroundColor: 'white', borderRadius: 10, borderLeftWidth: 5, borderLeftColor: '#f59042', elevation: 1, marginBottom: 30 },
-  mealDetailTitleText: { fontSize: 16, fontWeight: 'bold', color: '#333', borderBottomWidth: 1, borderBottomColor: '#eee', paddingBottom: 10, marginBottom: 10 },
-  mealItemBox: { backgroundColor: '#f9f9f9', borderRadius: 8, padding: 10, marginBottom: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  mealItemDescription: { fontSize: 15, fontWeight: '600', color: '#333', flex: 1 },
-  mealItemMacros: { flexDirection: 'row', alignItems: 'center', marginLeft: 10 },
-  mealItemCalorieText: { fontSize: 14, fontWeight: 'bold', color: themeColor, marginRight: 10 },
-  mealItemMacroText: { fontSize: 12, color: '#666', marginLeft: 5 },
-  noItemsText: { textAlign: 'center', fontSize: 15, color: '#999', padding: 20, backgroundColor: 'white', borderRadius: 10 },
-  macroRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 3, alignItems: 'center' },
+  // 🟢 ESTILOS DA SEÇÃO DE DETALHES (ADICIONADOS)
+  mealDetailContainer: {
+    marginTop: 10,
+    padding: 15,
+    backgroundColor: 'white',
+    borderRadius: 10,
+    borderLeftWidth: 5,
+    borderLeftColor: '#f59042',
+    elevation: 1,
+    marginBottom: 30,
+  },
+  mealDetailTitleText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+    paddingBottom: 10,
+    marginBottom: 10,
+  },
+  mealItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 5,
+  },
+  mealItemBox: {
+    backgroundColor: '#f9f9f9',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  itemDescription: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#333',
+    flex: 1,
+    paddingRight: 10, 
+  },
+  itemKcal: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: themeColor,
+    marginLeft: 10,
+  },
+  mealItemMacros: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 10,
+  },
+  mealItemCalorieText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: themeColor,
+    marginRight: 10,
+  },
+  noItemsText: {
+    textAlign: 'center',
+    fontSize: 15,
+    color: '#999',
+    padding: 20,
+    backgroundColor: 'white',
+    borderRadius: 10,
+  },
+  // 🟢 ESTILOS DE MACROS (ADICIONADOS)
+  macroRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 3,
+    alignItems: 'center',
+  },
   macroLabel: { flexDirection: 'row', alignItems: 'center' },
   macroEmoji: { fontSize: 16, marginRight: 5 },
   macroTextBold: { fontWeight: 'bold', color: '#333' },
   macroValue: { fontSize: 16, fontWeight: 'bold', color: themeColor },
+  // 🟢 NOVOS ESTILOS PARA O AUTOCOMPLETE
+  suggestionsList: {
+    maxHeight: 150,
+    backgroundColor: 'white',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    position: 'absolute',
+    top: 60,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    elevation: 5,
+  },
+  suggestionItem: {
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  suggestionText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  mealListSection: {
+    paddingBottom: 20,
+  },
+  separator: {
+    height: 1,
+    backgroundColor: '#ddd',
+    marginVertical: 20,
+  },
+  mealCard: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    marginBottom: 15,
+    padding: 15,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+  },
+  mealHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+    marginBottom: 10,
+  },
+  mealTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  mealTotalKcal: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: themeColor,
+  },
+  noDataText: {
+    textAlign: 'center',
+    color: '#888',
+    fontStyle: 'italic',
+    marginTop: 10,
+  }
 });
