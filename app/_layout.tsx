@@ -27,6 +27,7 @@ export default function RootLayout() {
         <Stack.Screen name="exercicio-modal" options={{ presentation: 'modal', title: 'Exercício' }} />
         <Stack.Screen name="ficha-modal" options={{ presentation: 'modal', title: 'Nova Ficha' }} />
         <Stack.Screen name="perfil-modal" options={{ presentation: 'modal', title: 'Meu Perfil' }} />
+        <Stack.Screen name="perfil" options={{ title: 'Perfil' }} />
 
         {/* ✅ CORRIGIDO: Adicione as duas linhas abaixo para registar os novos ecrãs */}
         <Stack.Screen name="gerir-suplementos" options={{ title: 'Gerir Suplementos' }} />

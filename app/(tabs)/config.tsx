@@ -29,10 +29,10 @@ export default function SettingsScreen() {
             <Stack.Screen options={{ headerShown: true, title: "Configurações", headerStyle: { backgroundColor: themeColor }, headerTintColor: '#fff' }} />
             <ScrollView style={styles.container}>
                 
-                <Pressable style={styles.linkCard} onPress={() => router.push('/perfil-modal')}>
+                <Pressable style={styles.linkCard} onPress={() => router.push('/perfil')}>
                     <View>
                         <Text style={styles.cardTitle}>Meu Perfil</Text>
-                        <Text style={styles.cardSubtitle}>Edite o seu nome e peso</Text>
+                        <Text style={styles.cardSubtitle}>Consulte os seus dados e progresso</Text>
                     </View>
                 </Pressable>
 
