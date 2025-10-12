@@ -1,104 +1,119 @@
 # 📱 App GymFlow
 
-**📅 Data da Versão:** 11 de outubro de 2025  
-**🚀 Status:** Funcionalidade Local Completa (**V.2.0**)
+**Data da Versão:** 12 de outubro de 2025  
+**Status:** Funcionalidade Local Completa (V.2.0)
 
 ---
 
 ## 📑 Sumário
 
-1. [Visão Geral](#1-🎯-visão-geral)  
-2. [Arquitetura e Tecnologias](#2-🏗️-arquitetura-e-tecnologias)  
-3. [Funcionalidades Implementadas](#3-⚙️-funcionalidades-implementadas)  
-  3.1 [Home (Tela Principal)](#31-🏠-home-tela-principal)  
-  3.2 [Esportes (Hub de Atividades)](#32-🏋️-esportes-hub-de-atividades)  
-  3.3 [Alimentação (Diário Nutricional)](#33-🍎-alimentação-diário-nutricional)  
-  3.4 [Configurações (Gestão e Personalização)](#34-⚙️-configurações-gestão-e-personalização)  
-4. [Roadmap (Próximos Passos)](#4-🚧-roadmap-próximos-passos)
+- [🎯 Visão Geral](#visão-geral)
+- [🏗️ Arquitetura e Tecnologias](#arquitetura-e-tecnologias)
+- [⚙️ Funcionalidades Implementadas](#funcionalidades-implementadas)
+  - [🏠 Home (Tela Principal)](#home-tela-principal)
+  - [🏋️ Esportes (Hub de Atividades)](#esportes-hub-de-atividades)
+  - [🍎 Alimentação (Diário Nutricional)](#alimentação-diário-nutricional)
+  - [⚙️ Configurações (Hub de Gestão)](#configurações-hub-de-gestão)
+- [🚧 Roadmap (Próximos Passos)](#roadmap-próximos-passos)
 
 ---
 
-## 1. 🎯 Visão Geral
+## 🎯 Visão Geral
 
-Aplicação móvel pessoal (**iOS/Android**) que atua como um **“Diário de Atleta Completo”**, permitindo monitorizar toda a rotina de treinos, suplementação e nutrição.
+Aplicação móvel pessoal (iOS/Android) que atua como **"Diário de Atleta Completo"**, permitindo monitorizar toda a rotina de treinos, suplementação e nutrição.
 
-### **Objetivos Principais**
+**Objetivos Principais:**
 
 - Centralizar registos de treinos (diversas modalidades)
-- Acompanhar suplementação e nutrição de forma dinâmica
+- Acompanhar suplementação e nutrição de forma dinâmica e inteligente
 - Fornecer métricas de progresso acionáveis
-- Funcionar **100% offline**, sem dependência de APIs externas para funcionalidades críticas
+- Funcionar 100% offline, sem dependência de APIs externas para funcionalidades críticas
 
-**Evolução:** Diário de musculação → Hub de performance completo.
+**Evolução:** Diário de musculação → Hub de performance completo
 
 ---
 
-## 2. 🏗️ Arquitetura e Tecnologias
+## 🏗️ Arquitetura e Tecnologias
 
-| **Categoria** | **Componentes Chave** | **Notas** |
+| Categoria | Componentes Chave | Notas |
 | --- | --- | --- |
-| **Framework** | React Native (Expo) / TypeScript | Base do projeto |
-| **Navegação** | Expo Router (file-based) | Estrutura de abas e navegação em stack |
-| **Armazenamento** | AsyncStorage | Fonte única de verdade para todos os dados do utilizador |
-| **Base de Dados** | JSON Local (`data/foodData.json`) | Implementado para análise nutricional, substituindo APIs externas |
-| **Lógica de Cálculo** | `utils/calorieCalculator.ts` | Contém a fórmula de TDEE (Harris-Benedict) |
-| **Controle de Estado** | Custom Hooks (`useWorkouts`, `useSupplements`, `useSports`) | Gerenciamento de dados centralizado e eficiente |
-| **Componentes Nativos** | expo-haptics, expo-notifications, react-native-calendars | Feedback tátil, lembretes e visualização de histórico |
+| Framework | React Native (Expo) / TypeScript | Base do projeto |
+| Navegação | Expo Router (file-based) | Estrutura de abas e navegação em stack |
+| Armazenamento | AsyncStorage | Fonte única de verdade para todos os dados do utilizador |
+| Base de Dados | JSON Local (`data/foodData.json`) | Base interna com mais de 300 alimentos, estruturada por categorias |
+| Lógica de Cálculo | `utils/calorieCalculator.ts` | Contém a fórmula de TDEE (Harris-Benedict) |
+| Controle de Estado | Custom Hooks (`useWorkouts`, etc.) | Gerenciamento de dados centralizado |
+| Componentes Nativos | `expo-notifications`, `react-native-calendars`, `react-native-chart-kit` | Utilizados para lembretes, calendário e gráficos |
 
 ---
 
-## 3. ⚙️ Funcionalidades Implementadas
+## ⚙️ Funcionalidades Implementadas
 
-### 3.1 🏠 Home (Tela Principal)
+### 🏠 Home (Tela Principal)
 
-- **Dashboard Diário:** Resumo dos compromissos do dia  
-- **Acompanhamento de Suplementos Dinâmico:** Cards interativos para suplementos configurados, com lógica de marcação (`daily_check`) ou contador (`counter`)  
-- **Gasto Calórico Diário:** Exibe o total de calorias gastas nas atividades do dia, com um botão que permite compartilhar o resumo diário de atividades e kcal gastas  
-- **Atalho de Musculação Dinâmico:** Sugere automaticamente o próximo treino da sequência  
-- **Resumo Semanal de Atividades:** Gráfico de barras com ícones dos desportos, mostrando a frequência de treinos  
-
----
-
-### 3.2 🏋️ Esportes (Hub de Atividades)
-
-- **Hub Central:** Ponto de partida para registar qualquer atividade física  
-- **Lista de Desportos Dinâmica:** Permite adicionar, remover e personalizar desportos e seus ícones  
-- **Gráfico de Evolução de Carga:** Mostra a progressão de peso (PR) nas fichas de exercícios  
-- **Fluxos Diferenciados:**  
-  - **Academia:** Redireciona para fichas detalhadas de musculação  
-  - **Outros Desportos:** Ecrã de registo rápido com campos específicos (ex: “Metros Nadados” para Natação)  
+- **Dashboard Diário:** Resumo dos compromissos do dia
+- **Acompanhamento de Suplementos Dinâmico:** Cards interativos para todos os suplementos configurados
+- **Gasto Calórico Diário:** Exibe o total de calorias gastas nas atividades do dia
+- **Atalho de Musculação Dinâmico:** Sugere automaticamente o próximo treino da sequência
+- **Resumo Semanal de Atividades:** Gráfico de barras com ícones dos desportos, mostrando a frequência
 
 ---
 
-### 3.3 🍎 Alimentação (Diário Nutricional)
+### 🏋️ Esportes (Hub de Atividades)
 
-*(Antigo `historico.tsx`)*
+- **Hub Central:** Ponto de partida para registar qualquer atividade física
+- **Lista de Desportos Dinâmica:** O utilizador pode adicionar, editar e apagar os seus próprios desportos
+- **Gráfico de Evolução de Carga:** Dentro da tela de detalhe de cada exercício de musculação, um gráfico de linhas exibe a progressão de peso (PR)
 
-- **Registo Baseado em JSON Local:** Lê base interna com mais de **300 alimentos**  
-- **Input Robusto:** Aceita entradas com quantidades em g ou ml (`150g Frango`, `300ml Leite`)  
-- **Balanço Diário Visível:** Mostra o **Total Consumido** e **Total Gasto** no topo  
-- **Categorização de Refeição:** Permite escolher a refeição (Café, Almoço, etc.)  
-- **Visualização Detalhada:** Histórico diário agrupado por refeição, exibindo total de Kcal por bloco  
+**Fluxos Diferenciados:**
 
----
-
-### 3.4 ⚙️ Configurações (Gestão e Personalização)
-
-- **Perfil do Utilizador:** Peso, altura, idade e género  
-- **Hub de Gestão:** Centraliza o acesso para:  
-  - **Gerir Suplementos:** CRUD completo + lembrete de creatina  
-  - **Gerir Fichas de Treino:** CRUD completo de fichas e exercícios  
-  - **Gerir Esportes:** CRUD de desportos personalizados  
-- **Histórico e Dados (antigo `gestao-dados`):**  
-  - **Modo de Edição:** Botão no cabeçalho ativa edição para excluir ou adicionar registros  
+- **Academia:** Redireciona para as fichas de treino detalhadas (A, B, C, etc.)
+- **Outros Desportos:** Abre um ecrã de registo rápido com campos especializados (ex: "Metros Nadados" para Natação)
 
 ---
 
-## 4. 🚧 Roadmap (Próximos Passos)
+### 🍎 Alimentação (Diário Nutricional)
 
-- 📊 Implementar ecrã de **Progresso** com gráficos de longo prazo (ex: volume de treino)  
-- 🧮 **Cálculo de TDEE Preciso:** Aprimorar o cálculo com base em histórico e tendências de peso  
-- 🗓️ **Calendário e Balanço:** Exibir o histórico de kcal com **pontos coloridos dinâmicos** (🟢 déficit / 🔴 superávit), representando também intensidade e consistência de treino  
-- ⏱️ Criar **Modo Treino** ativo com cronómetro de descanso  
-- 💾 Adicionar **Backup e Restauração Local** (Exportar/Importar JSON)  
-- ☁️ **Longo Prazo:** Integrar Firebase para autenticação e sincronização na nuvem  
+- **Busca Inteligente com Autocomplete:** Lista de sugestões de alimentos que aparece enquanto o utilizador digita
+- **Input Robusto e Flexível:** Interpreta quantidades em g, ml, "colher de sopa" e "unidade"
+- **Balanço Diário Visível:** Mostra o Total Consumido e o Total Gasto em calorias no topo do ecrã
+- **Categorização e Detalhes:** Permite registar alimentos por refeição e visualizar um histórico diário agrupado por categoria
+
+---
+
+### ⚙️ Configurações (Hub de Gestão)
+
+- **Hub Central de Gestão:** Centraliza o acesso a todas as áreas de personalização da aplicação
+
+**Perfil do Utilizador (`perfil.tsx` e `perfil-modal.tsx`):**
+
+- Visualização Clara: Dados como nome, idade, altura, peso e IMC
+- Edição Avançada: Definição de Peso Meta e Prazo, calculando automaticamente a meta de calorias diárias
+
+**Gestão de Suplementos (`gerir-suplementos.tsx`):**
+
+- CRUD Completo: Criar, editar e apagar suplementos
+- Lembretes Dinâmicos: Cada suplemento possui um botão Switch para ativar/desativar lembrete diário com horário personalizado
+
+**Gestão de Fichas de Treino (`gerir-fichas.tsx`):**
+
+- CRUD Completo: Criar, editar e apagar fichas de treino e exercícios
+
+**Gestão de Esportes (`gerir-esportes.tsx`):**
+
+- CRUD Completo: Criar, editar e apagar desportos personalizados, incluindo seleção de ícones
+
+**Histórico e Dados (`gestao-dados.tsx`):**
+
+- Calendário Inteligente: Exibe um ponto em cada dia com registos, colorido para indicar balanço calórico (Verde = déficit, Vermelho = superávit)
+- Resumo Detalhado no Modal: Ao clicar num dia, modal exibe balanço completo, suplementos e atividades da data
+- Modo de Edição: Permite excluir registos de atividades ou adicionar novas atividades a dias passados
+
+---
+
+## 🚧 Roadmap (Próximos Passos)
+
+- 📊 Implementar ecrã de "Progresso" com gráficos de longo prazo (ex: volume de treino)
+- ⏱️ Criar "Modo Treino" ativo com cronómetro de descanso
+- 💾 Adicionar Backup e Restauração Local (Exportar/Importar JSON)
+- ☁️ Longo Prazo: Integrar Firebase para autenticação e sincronização na nuvem
