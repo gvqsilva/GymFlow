@@ -1,70 +1,64 @@
 // app/(tabs)/config.tsx
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, SafeAreaView, Pressable, ScrollView } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
-import * as Notifications from 'expo-notifications'; 
-// REMOVIDAS as importações de AsyncStorage, DateTimePicker e scheduleNextReminder
+import { Ionicons } from '@expo/vector-icons';
 
 const themeColor = '#5a4fcf';
-
-// O handler de notificações permanece, pois é uma configuração global do Expo
-Notifications.setNotificationHandler({
-  handleNotification: async () => {
-    return {
-      shouldShowAlert: true,
-      shouldPlaySound: false,
-      shouldSetBadge: false,
-    } as Notifications.NotificationBehavior;
-  },
-});
 
 export default function SettingsScreen() {
     const router = useRouter();
 
-    // REMOVIDA: Toda a lógica de estado e funções relacionadas ao lembrete de creatina.
-
     return (
         <SafeAreaView style={styles.safeArea}>
-            <Stack.Screen options={{ headerShown: true, title: "Configurações", headerStyle: { backgroundColor: themeColor }, headerTintColor: '#fff' }} />
+            <Stack.Screen 
+                options={{ 
+                    headerShown: true, 
+                    title: "Configurações",
+                    headerStyle: { backgroundColor: themeColor },
+                    headerTintColor: '#fff',
+                }} 
+            />
             <ScrollView style={styles.container}>
+                <Text style={styles.sectionHeader}>Personalização</Text>
                 
                 <Pressable style={styles.linkCard} onPress={() => router.push('/perfil')}>
-                    <View>
+                    <Ionicons name="person-circle-outline" size={28} color={themeColor} />
+                    <View style={styles.cardTextContainer}>
                         <Text style={styles.cardTitle}>Meu Perfil</Text>
-                        <Text style={styles.cardSubtitle}>Consulte os seus dados e progresso</Text>
+                        <Text style={styles.cardSubtitle}>Consulte e edite os seus dados e metas </Text>
                     </View>
+                    <Ionicons name="chevron-forward" size={24} color="gray" />
                 </Pressable>
 
-                {/* Este card leva ao Gerir Suplementos, onde agora está o lembrete */}
                 <Pressable style={styles.linkCard} onPress={() => router.push('/gerir-suplementos')}>
-                    <View>
+                    <Ionicons name="flask-outline" size={28} color={themeColor} />
+                    <View style={styles.cardTextContainer}>
                         <Text style={styles.cardTitle}>Gerir Suplementos</Text>
-                        <Text style={styles.cardSubtitle}>Adicione, edite ou apague suplementos</Text>
+                        <Text style={styles.cardSubtitle}>Adicione, remova e configure lembretes </Text>
                     </View>
+                    <Ionicons name="chevron-forward" size={24} color="gray" />
                 </Pressable>
 
                 <Pressable style={styles.linkCard} onPress={() => router.push('/gerir-fichas')}>
-                    <View>
-                        <Text style={styles.cardTitle}>Gerenciar Fichas de Treino</Text>
-                        <Text style={styles.cardSubtitle}>Adicione, edite ou apague exercícios</Text>
+                    <Ionicons name="document-text-outline" size={28} color={themeColor} />
+                    <View style={styles.cardTextContainer}>
+                        <Text style={styles.cardTitle}>Gerir Fichas de Treino</Text>
+                        <Text style={styles.cardSubtitle}>Crie e personalize as suas fichas </Text>
                     </View>
+                    <Ionicons name="chevron-forward" size={24} color="gray" />
                 </Pressable>
 
                 <Pressable style={styles.linkCard} onPress={() => router.push('/gerir-esportes')}>
-                    <View>
+                    <Ionicons name="football-outline" size={28} color={themeColor} />
+                    <View style={styles.cardTextContainer}>
                         <Text style={styles.cardTitle}>Gerir Esportes</Text>
-                        <Text style={styles.cardSubtitle}>Adicione ou remova modalidades</Text>
+                        <Text style={styles.cardSubtitle}>Adicione ou remova outras modalidades </Text>
                     </View>
+                    <Ionicons name="chevron-forward" size={24} color="gray" />
                 </Pressable>
-                
-                <Pressable style={styles.linkCard} onPress={() => router.push('/gestao-dados')}>
-                    <View>
-                        <Text style={styles.cardTitle}>Histórico e Dados</Text>
-                        <Text style={styles.cardSubtitle}>Consulte e apague o seu histórico</Text>
-                    </View>
-                </Pressable>
-                
+
             </ScrollView>
         </SafeAreaView>
     );
@@ -72,20 +66,43 @@ export default function SettingsScreen() {
 
 const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: '#f0f2f5' },
-    container: { padding: 20 },
-    // O estilo 'card' foi mantido para consistência, mas o card do lembrete foi removido.
-    linkCard: {
-        backgroundColor: 'white', 
-        borderRadius: 20, 
-        padding: 20, 
-        marginBottom: 20, 
-        shadowColor: '#000', 
-        shadowOffset: { width: 0, height: 2 }, 
-        shadowOpacity: 0.1, 
-        shadowRadius: 4, 
-        elevation: 3,
+    container: { flex: 1, paddingTop: 10 },
+    sectionHeader: { 
+        fontSize: 16, 
+        fontWeight: '600', 
+        color: 'gray', 
+        paddingHorizontal: 20, 
+        marginTop: 20, 
+        marginBottom: 10,
+        textTransform: 'uppercase'
     },
-    cardTitle: { fontSize: 20, fontWeight: 'bold', color: '#333' },
-    cardSubtitle: { fontSize: 14, color: 'gray', marginTop: 5 },
-    // REMOVIDO: O estilo reminderTimeText
+    linkCard: {
+        backgroundColor: 'white',
+        paddingHorizontal: 20,
+        paddingVertical: 15,
+        marginHorizontal: 20,
+        borderRadius: 10,
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 10,
+        elevation: 1,
+        shadowColor: '#000',
+        shadowOpacity: 0.05,
+        shadowRadius: 5,
+        shadowOffset: { width: 0, height: 1 },
+    },
+    cardTextContainer: {
+        flex: 1,
+        marginLeft: 15,
+    },
+    cardTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#333',
+    },
+    cardSubtitle: {
+        fontSize: 14,
+        color: 'gray',
+        marginTop: 2,
+    },
 });
