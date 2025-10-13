@@ -2,10 +2,10 @@
 export default ({ config }) => {
   return {
     ...config,
-    name: process.env.APP_NAME || 'BETA-GymFlow', // Nome do app
+    name: process.env.APP_NAME || 'GymFlow', // Nome do app
     slug: 'brainiac',
     version: '1.0.0',
-    icon: process.env.APP_ICON || './assets/images/icon-dev.png', // Ícone do app
+    icon: process.env.APP_ICON || './assets/images/icon-gym.png', // Ícone do app
     scheme: 'brainiac',
     userInterfaceStyle: 'automatic',
     ios: {
@@ -16,7 +16,7 @@ export default ({ config }) => {
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
       adaptiveIcon: {
-        foregroundImage: './assets/images/android-icon-foreground.png',
+        foregroundImage: './assets/images/icon-gym.png',
         backgroundImage: './assets/images/android-icon-background.png',
         monochromeImage: './assets/images/android-icon-monochrome.png',
         backgroundColor: '#E6F4FE',
