@@ -319,5 +319,27 @@
     { "name": "GYOZA COZIDA (POR 5 UNIDADES)", "calories": 180, "protein": 9, "carbs": 22, "fat": 6 },
     { "name": "SHRIMP FRIED RICE", "calories": 200, "protein": 8, "carbs": 28, "fat": 6 },
     { "name": "SOJA EM MOLHO SHoyu", "calories": 53, "protein": 5, "carbs": 4, "fat": 2 }
+  ],
+  "DOCES": [
+    { "name": "CHOCOLATE AO LEITE (50g)", "calories": 270, "protein": 3, "carbs": 30, "fat": 15 },
+    { "name": "CHOCOLATE AMARGO (50g)", "calories": 250, "protein": 4, "carbs": 25, "fat": 15 },
+    { "name": "BALA DE GELATINA (10 unidades)", "calories": 150, "protein": 1, "carbs": 35, "fat": 0 },
+    { "name": "BOMBOM AO LEITE", "calories": 70, "protein": 1, "carbs": 8, "fat": 4 },
+    { "name": "BOMBOM AMARGO", "calories": 65, "protein": 1, "carbs": 7, "fat": 4 },
+    { "name": "BRIGADEIRO (1 unidade)", "calories": 90, "protein": 1, "carbs": 12, "fat": 4 },
+    { "name": "BEIJINHO (1 unidade)", "calories": 85, "protein": 1, "carbs": 11, "fat": 4 },
+    { "name": "PAÇOCA (30g)", "calories": 150, "protein": 3, "carbs": 12, "fat": 9 },
+    { "name": "TORTA DE CHOCOLATE (fatia)", "calories": 350, "protein": 5, "carbs": 40, "fat": 20 },
+    { "name": "SORVETE CASQUINHA (1 unidade)", "calories": 200, "protein": 3, "carbs": 30, "fat": 8 },
+    { "name": "COOKIE DE CHOCOLATE (1 unidade)", "calories": 180, "protein": 2, "carbs": 24, "fat": 9 },
+    { "name": "DONUT RECHEADO", "calories": 300, "protein": 4, "carbs": 35, "fat": 16 },
+    { "name": "BROWNIE (1 unidade)", "calories": 250, "protein": 3, "carbs": 28, "fat": 14 },
+    { "name": "PASTEL DE DOCE DE LEITE", "calories": 320, "protein": 4, "carbs": 35, "fat": 18 },
+    { "name": "TORTA DE LIMÃO (fatia)", "calories": 300, "protein": 3, "carbs": 35, "fat": 15 },
+    { "name": "CUPCAKE DE CHOCOLATE", "calories": 220, "protein": 3, "carbs": 28, "fat": 10 },
+    { "name": "CUPCAKE DE BAUNILHA", "calories": 210, "protein": 2, "carbs": 30, "fat": 9 },
+    { "name": "MARSHMALLOW (5 unidades)", "calories": 150, "protein": 1, "carbs": 35, "fat": 0 },
+    { "name": "TRUFA DE CHOCOLATE", "calories": 90, "protein": 1, "carbs": 9, "fat": 5 },
+    { "name": "PASTEL DE NATA", "calories": 250, "protein": 3, "carbs": 28, "fat": 14 }
   ]
 }

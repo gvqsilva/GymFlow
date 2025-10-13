@@ -33,6 +33,18 @@ const getStartOfWeek = (date = new Date()) => {
     return new Date(d.setDate(diff));
 };
 
+// ✅ NOVO: Função para obter a saudação baseada na hora
+const getGreeting = () => {
+    const currentHour = new Date().getHours();
+    if (currentHour < 12) {
+        return "Bom dia";
+    } else if (currentHour < 18) {
+        return "Boa tarde";
+    } else {
+        return "Boa noite";
+    }
+};
+
 const WeeklySummaryGraph = ({ data, iconMap }: { data: { [key: string]: number }, iconMap: any }) => {
     const activities = Object.entries(data);
 
@@ -217,6 +229,10 @@ export default function HomeScreen() {
         }
     };
 
+    // ✅ NOVO: Obtém a saudação e o nome do utilizador
+    const greeting = getGreeting();
+    const welcomeMessage = `${greeting},`;
+
     const nextWorkoutName = isLoadingWorkouts ? 'A carregar...' : (workouts[nextWorkoutId]?.name || 'Treino');
     const totalDurationToday = todayActivities.reduce((sum, entry) => sum + (entry.details?.duration || (entry.category === 'Musculação' ? 60 : 0)), 0);
 
@@ -226,7 +242,8 @@ export default function HomeScreen() {
             <ScrollView>
                 <View style={styles.header}>
                     <View>
-                        <Text style={styles.greetingSmall}>Olá,</Text>
+                        {/* ✅ ALTERADO: Usa a saudação dinâmica */}
+                        <Text style={styles.greetingSmall}>{welcomeMessage} </Text>
                         <Text style={styles.greetingLarge}>{userName} </Text>
                     </View>
                     <Text style={styles.workoutCount}>{`Acad. na semana: ${weeklyGymWorkouts}`} </Text>
@@ -256,12 +273,10 @@ export default function HomeScreen() {
                                     updateSupplementValue(supplement, !isTaken);
                                 }}>
                                     <View>
-                                        <Text style={styles.cardTitle}>{supplement.name}</Text>
-                                        <Text style={styles.cardDose}>{`Dose: ${supplement.dose}${supplement.unit}`}</Text>
+                                        <Text style={styles.cardTitle}>{supplement.name} </Text>
+                                        <Text style={styles.cardDose}>{`Dose: ${supplement.dose}${supplement.unit}`} </Text>
                                     </View>
-                                    <Text style={[styles.statusIcon, { color: isTaken ? 'green' : 'red' }]}>
-                                        {isTaken ? '✔' : '❌'}
-                                    </Text>
+                                    <Text style={[styles.statusIcon, { color: isTaken ? 'green' : 'red' }]}>{isTaken ? '✔' : '❌'}  </Text>
                                 </Pressable>
                             );
                         }
