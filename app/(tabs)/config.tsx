@@ -59,6 +59,15 @@ export default function SettingsScreen() {
                     <Ionicons name="chevron-forward" size={24} color="gray" />
                 </Pressable>
 
+                <Pressable style={styles.linkCard} onPress={() => router.push('/gestao-dados')}>
+                    <Ionicons name="calendar-outline" size={28} color={themeColor} />
+                    <View style={styles.cardTextContainer}>
+                        <Text style={styles.cardTitle}>Gestão de Dados</Text>
+                        <Text style={styles.cardSubtitle}>Histórico mensal de atividades, suplementos e Kcal </Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={24} color="gray" />
+                </Pressable>
+
             </ScrollView>
         </SafeAreaView>
     );
