@@ -39,7 +39,7 @@ interface FoodItem {
   protein: number;
   carbs: number;
   fat: number;
-  measures?: Record<string, number>; // Medidas de conversão
+  measures?: Record<string, number>;
 }
 
 interface FoodEntry {
@@ -61,7 +61,7 @@ interface GroupedMealData {
 const allFoods: FoodItem[] = Object.values(FoodDatabase).flat();
 const getLocalDateString = (date = new Date()) => date.toISOString().split('T')[0];
 
-const ResultMacroText = ({ label, value, unit, emoji }: { label: string, value: number | undefined | null, unit: string, emoji: string }) => (
+const ResultMacroText = ({ label, value, unit, emoji }: { label: string; value: number | undefined | null; unit: string; emoji: string; }) => (
   <View style={styles.macroRow}>
     <Text style={styles.macroLabel}>
       <Text style={styles.macroEmoji}>{emoji} </Text>
@@ -120,7 +120,7 @@ const MealDetail = ({ mealData }: { mealData: GroupedMealData | undefined }) => 
   return (
     <View style={styles.mealDetailContainer}>
       <Text style={styles.mealDetailTitleText}>
-        Detalhes de {mealData.mealType} ({mealData.totalCalories} Kcal)
+        Itens Registrados em {mealData.mealType} ({mealData.totalCalories} Kcal)
       </Text>
       {mealData.items.map(item => (
         <View key={item.id} style={styles.mealItemBox}>
@@ -171,7 +171,7 @@ export default function HistoricoScreen() {
     }
   };
 
-  const cleanNameForSearch = (name: string) => name.toUpperCase().replace(/[^A-ZÀ-Ú]/g, '');
+  const cleanNameForSearch = (name: string) => name.toUpperCase().replace(/[^A-ZÀ-ÚÇ]/g, '');
 
   const handleQueryChange = (text: string) => {
     setQuery(text);
@@ -246,6 +246,8 @@ export default function HistoricoScreen() {
       finalGrams = quantity * (foundFood.measures as any)[parsedUnit];
     } else if (!parsedUnit && foundFood.measures?.['UNIDADE']) {
       finalGrams = quantity * foundFood.measures['UNIDADE'];
+    } else if (quantityMatch) {
+      finalGrams = quantity;
     } else {
       finalGrams = 100;
     }
@@ -325,6 +327,7 @@ export default function HistoricoScreen() {
                     data={suggestions}
                     keyExtractor={(item) => item.name}
                     style={styles.suggestionsList}
+                    nestedScrollEnabled={true}
                     renderItem={({ item }) => (
                         <Pressable style={styles.suggestionItem} onPress={() => onSuggestionPress(item.name)}>
                             <Text style={styles.suggestionText}>{item.name}</Text>

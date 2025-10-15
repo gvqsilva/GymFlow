@@ -113,7 +113,4 @@ Aplicação móvel pessoal (iOS/Android) que atua como **"Diário de Atleta Comp
 
 ## 🚧 Roadmap (Próximos Passos)
 
-- 📊 Implementar ecrã de "Progresso" com gráficos de longo prazo (ex: volume de treino)
-- ⏱️ Criar "Modo Treino" ativo com cronómetro de descanso
-- 💾 Adicionar Backup e Restauração Local (Exportar/Importar JSON)
 - ☁️ Longo Prazo: Integrar Firebase para autenticação e sincronização na nuvem

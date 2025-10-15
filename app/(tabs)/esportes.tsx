@@ -34,8 +34,8 @@ const MonthlyActivitySummary = ({ history, sportName }: { history: any[], sportN
             <View style={styles.summaryGrid}>
                 {daysOfWeek.map((day, index) => (
                     <View key={day} style={styles.dayColumn}>
-                        <Text style={styles.dayCount}>{dayCounts[index]}</Text>
-                        <Text style={styles.dayLabel}>{day}</Text>
+                        <Text style={styles.dayCount}>{dayCounts[index]} </Text>
+                        <Text style={styles.dayLabel}>{day} </Text>
                     </View>
                 ))}
             </View>
@@ -98,7 +98,7 @@ export default function SportsScreen() {
                                 <View style={styles.cardHeader}>
                                     <IconComponent name={item.icon as any} size={32} color={themeColor} />
                                     <View style={styles.cardTextContainer}>
-                                        <Text style={styles.cardTitle}>{item.name}</Text>
+                                        <Text style={styles.cardTitle}>{item.name} </Text>
                                     </View>
                                     <Ionicons name="chevron-forward-outline" size={24} color="#ccc" />
                                 </View>

@@ -21,8 +21,8 @@ export default function SettingsScreen() {
                 }} 
             />
             <ScrollView style={styles.container}>
-                <Text style={styles.sectionHeader}>Personalização</Text>
-                
+                <Text style={styles.sectionHeader}>Dados e Progresso</Text>    
+
                 <Pressable style={styles.linkCard} onPress={() => router.push('/perfil')}>
                     <Ionicons name="person-circle-outline" size={28} color={themeColor} />
                     <View style={styles.cardTextContainer}>
@@ -31,6 +31,17 @@ export default function SettingsScreen() {
                     </View>
                     <Ionicons name="chevron-forward" size={24} color="gray" />
                 </Pressable>
+
+                <Pressable style={styles.linkCard} onPress={() => router.push('/gestao-dados')}>
+                    <Ionicons name="calendar-outline" size={28} color={themeColor} />
+                    <View style={styles.cardTextContainer}>
+                        <Text style={styles.cardTitle}>Gestão de Dados</Text>
+                        <Text style={styles.cardSubtitle}>Histórico mensal de atividades, suplementos e Kcal </Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={24} color="gray" />
+                </Pressable>
+                
+                <Text style={styles.sectionHeader}>Personalização</Text>
 
                 <Pressable style={styles.linkCard} onPress={() => router.push('/gerir-suplementos')}>
                     <Ionicons name="flask-outline" size={28} color={themeColor} />
@@ -55,15 +66,6 @@ export default function SettingsScreen() {
                     <View style={styles.cardTextContainer}>
                         <Text style={styles.cardTitle}>Gerir Esportes</Text>
                         <Text style={styles.cardSubtitle}>Adicione ou remova outras modalidades </Text>
-                    </View>
-                    <Ionicons name="chevron-forward" size={24} color="gray" />
-                </Pressable>
-
-                <Pressable style={styles.linkCard} onPress={() => router.push('/gestao-dados')}>
-                    <Ionicons name="calendar-outline" size={28} color={themeColor} />
-                    <View style={styles.cardTextContainer}>
-                        <Text style={styles.cardTitle}>Gestão de Dados</Text>
-                        <Text style={styles.cardSubtitle}>Histórico mensal de atividades, suplementos e Kcal </Text>
                     </View>
                     <Ionicons name="chevron-forward" size={24} color="gray" />
                 </Pressable>

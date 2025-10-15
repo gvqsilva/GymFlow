@@ -294,14 +294,14 @@ export default function HomeScreen() {
                                             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                                             updateSupplementValue(supplement, Math.max(0, count - 1));
                                         }} style={styles.wheyButton}>
-                                            <Text style={styles.wheyArrow}>{'<'}</Text>
+                                            <Text style={styles.wheyArrow}><Ionicons name="chevron-back-outline" size={22} color="gray" /></Text>
                                         </Pressable>
                                         <Text style={styles.wheyCountText}>{count}</Text>
                                         <Pressable onPress={() => {
                                             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                                             updateSupplementValue(supplement, count + 1);
                                         }} style={styles.wheyButton}>
-                                            <Text style={styles.wheyArrow}>{'>'}</Text>
+                                            <Text style={styles.wheyArrow}><Ionicons name="chevron-forward-outline" size={24} color="gray" /> </Text>
                                         </Pressable>
                                     </View>
                                 </View>
